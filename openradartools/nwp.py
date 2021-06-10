@@ -1,13 +1,14 @@
 import os
 from glob import glob
 
+import pyart
 import cftime
 import numpy as np
 import xarray as xr
 import pandas as pd
 from scipy.interpolate import interp1d
 
-def nwp_profile(request_dt, request_lat, request_lon):
+def nwp_profile(radar):
     """
     Compute the signal-to-noise ratio as well as interpolating the radiosounding
     temperature on to the radar grid. The function looks for the radiosoundings
@@ -63,7 +64,7 @@ def nwp_profile(request_dt, request_lat, request_lon):
                       'standard_name': 'temperature',
                       'valid_min': -100, 'valid_max': 100,
                       'units': 'degrees Celsius',
-                      'comment': 'Radiosounding date: %s' % (dtime.strftime("%Y/%m/%d"))}
+                      'comment': 'Radiosounding date: %s' % (request_dt.strftime("%Y/%m/%d"))}
     
     #interpolate to 0C and -20C levels
     fz_level = np.round(_sounding_interp(temp_profile, geopot_profile, 0))
