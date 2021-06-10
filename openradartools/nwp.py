@@ -1,5 +1,6 @@
 import os
 from glob import glob
+from datetime import datetime
 
 import pyart
 import cftime
@@ -68,7 +69,7 @@ def nwp_profile(radar, source='era5'):
         with xr.open_dataset(geop_ffn) as geop_ds:
             geopot_profile = geop_ds.geop_ht.sel(lon=request_lon, method='nearest').sel(lat=request_lat, method='nearest').data[0] #units: m
         with xr.open_dataset(rh_ffn) as rh_ds:
-            rh_profile = rh_ds.r.sel(lon=request_lon, method='nearest').sel(lat=request_lat, method='nearest').data[0] #units: percentage       
+            rh_profile = rh_ds.relhum.sel(lon=request_lon, method='nearest').sel(lat=request_lat, method='nearest').data[0] #units: percentage       
 
     elif source == "era5":
         flip = True
