@@ -89,10 +89,15 @@ def nwp_profile(radar, source='era5'):
             rh_profile = rh_ds.r.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:] #units: percentage      
         
     #flipdata (ground is first row)
-    if flip
+    if flip:
         temp_profile = np.flipud(temp_profile)
         geopot_profile = np.flipud(geopot_profile)   
         rh_profile = np.flipud(rh_profile)
+    
+    #append surface data using lowest level
+    geopot_profile = np.append([0], geopot_profile)
+    temp_profile = np.append(temp_profile[0], temp_profile)
+    rh_profile = np.append(rh_profile[0], rh_profile)
     
     #map temp and z to radar gates
     z_field, temp_field = pyart.retrieve.map_profile_to_gates(temp_profile, geopot_profile, radar)
