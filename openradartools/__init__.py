@@ -15,6 +15,8 @@ from . import sp  # noqa
 from . import file  # noqa
 from . import nwp  # noqa
 from . import vel  # noqa
+from . import gridding #noqa
+from . import optflow #noqa
 
 __all__ = [s for s in dir() if not s.startswith("_")]
 

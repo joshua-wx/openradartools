@@ -3,6 +3,7 @@ import os
 import numpy as np
 import wradlib as wrl
 
+#from wradlab
 def open_dem(dem_fn='australia_250m_dem.tif', invalid_terrain=-9999):
     """
     Open a DEM file for generating masks. returns variables required for wradlib processing
@@ -13,6 +14,7 @@ def open_dem(dem_fn='australia_250m_dem.tif', invalid_terrain=-9999):
     
     return (rastervalues, rastercoords, proj)
 
+#from wradlab
 def beam_blocking(radar, radar_id, radar_dt, srtm_ffn, output_root, force=False):
     """
     Apply the wradlib beam blocking library for the target volume.

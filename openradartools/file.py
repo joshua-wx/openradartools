@@ -5,6 +5,7 @@ import tempfile
 from datetime import datetime
 
 #Other libs
+import h5py
 import pandas
 import pyart
 import numpy as np
@@ -72,6 +73,12 @@ def pack_zip(zip_fn, zip_path,  ffn_list):
     os.system(cmd)
     return None
 
+def get_dt_list(vol_ffn_list):
+    dt_list = []
+    for vol_ffn in vol_ffn_list:
+        dt_list.append(datetime.strptime(os.path.basename(vol_ffn)[3:18],'%Y%m%d_%H%M%S'))
+    return dt_list
+
 def findin_sitelist(config_dict, radar_id, radar_dt):    
        
     id_list  = config_dict['id']
@@ -115,7 +122,7 @@ def get_field_names():
                     ('SNRH', 'signal_to_noise_ratio')]
     return fields_names
 
-def read_odim(radar_file_name):
+def read_odim(radar_file_name, radar_id, dt, siteinfo_ffn):
     """
     Reads odimh5 volume using pyart and replaces fieldnames as required
 
@@ -133,12 +140,48 @@ def read_odim(radar_file_name):
     radar = pyart.aux_io.read_odim_h5(radar_file_name, file_field_names=True)
     #get field names
     fields_names = get_field_names()
-    # Parse array old_key, new_key and add least sig digit
+    # Parse array old_key, new_key
     for old_key, new_key in fields_names:
         try:
             radar.add_field(new_key, radar.fields.pop(old_key), replace_existing=True)
         except KeyError:
             continue
+            
+    #insert meta data if missing
+    with h5py.File(radar_file_name, 'r') as hfile:
+        global_how = hfile['how'].attrs
+        frequency = global_how['rapic_FREQUENCY']
+        try:
+            beamwH = global_how['beamwH']
+            beamwV = global_how['beamwV']
+        except:
+            #beamwidth
+            beamwH = global_how['beamwidth']
+            beamwV = beamwH
+    freq_dict = {'comments': 'Rapic Frequency',
+                 'meta_group': 'instrument_parameters',
+                 'long_name': 'Tx Frequency',
+                 'units': 'MHz',
+                 'data': np.array([frequency])}     
+    bwh_dict = {'comments': 'Rapic Beam Width',
+                 'meta_group': 'instrument_parameters',
+                 'long_name': 'Horizontal Beam Width',
+                 'units': 'Degrees',
+                 'data': np.array([beamwH])}
+    bwv_dict = {'comments': 'Rapic Beam Width',
+                 'meta_group': 'instrument_parameters',
+                 'long_name': 'Vertical Beam Width',
+                 'units': 'Degrees',
+                 'data': np.array([beamwV])}    
+    radar.instrument_parameters = {'frequency':freq_dict, 'radar_beam_width_h':bwh_dict, 'radar_beam_width_v':bwv_dict}
+        
+    #update latlonalt data
+    config_dict = read_csv(siteinfo_ffn, 0)
+    site_idx = findin_sitelist(config_dict, radar_id, dt)
+    radar.latitude['data'] = np.array([config_dict['site_lat'][site_idx]])
+    radar.longitude['data'] = np.array([config_dict['site_lon'][site_idx]])
+    radar.altitude['data'] = np.array([config_dict['site_alt'][site_idx]])
+    
     #return radar object
     return radar
 
