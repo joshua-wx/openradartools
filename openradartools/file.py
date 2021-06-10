@@ -122,22 +122,30 @@ def get_field_names():
                     ('SNRH', 'signal_to_noise_ratio')]
     return fields_names
 
-def read_odim(radar_file_name, radar_id, dt, siteinfo_ffn):
+def read_odim(odim_ffn, siteinfo_ffn=None):
     """
     Reads odimh5 volume using pyart and replaces fieldnames as required
 
     Parameters:
     ===========
-        radar_file_name: str
+        odim_ffn: str
             Full filename to radar volume file 
             
     Returns:
     ========
         radar: Py-ART radar object
             
-    """   
+    """
+    #read metadata
+    radar_id = int(os.path.basename(odim_ffn)[:2])
+    dt = datetime.strptime(os.path.basename(odim_ffn)[3:18],'%Y%m%d_%H%M%S')
+    
+    if siteinfo_ffn is None:
+        #use default
+        siteinfo_ffn = '/g/data/rq0/level_1/odim_pvol/radar_site_list.csv'
+        
     #read radar object
-    radar = pyart.aux_io.read_odim_h5(radar_file_name, file_field_names=True)
+    radar = pyart.aux_io.read_odim_h5(odim_ffn, file_field_names=True)
     #get field names
     fields_names = get_field_names()
     # Parse array old_key, new_key
@@ -148,7 +156,7 @@ def read_odim(radar_file_name, radar_id, dt, siteinfo_ffn):
             continue
             
     #insert meta data if missing
-    with h5py.File(radar_file_name, 'r') as hfile:
+    with h5py.File(odim_ffn, 'r') as hfile:
         global_how = hfile['how'].attrs
         frequency = global_how['rapic_FREQUENCY']
         try:
