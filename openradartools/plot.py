@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.colors as colors
 
-def _adjust_ncarpid_scheme_colorbar_for_pyart(cb):
+def adjust_ncarpid_scheme_colorbar_for_pyart(cb):
     """
     Generate colorbar for the hydrometeor classification.
     """
@@ -20,7 +20,7 @@ def _adjust_ncarpid_scheme_colorbar_for_pyart(cb):
     cb.ax.tick_params(length=0)
     return cb
 
-def _adjust_csuhca_scheme_colorbar_for_pyart(cb):
+def adjust_csuhca_scheme_colorbar_for_pyart(cb):
     """
     Generate colorbar for the hydrometeor classification.
     """
