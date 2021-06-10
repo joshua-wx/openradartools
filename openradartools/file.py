@@ -10,6 +10,11 @@ import pandas
 import pyart
 import numpy as np
 
+def get_wavelength(h5_ffn):
+    hfile = h5py.File(h5_ffn, 'r')
+    global_how = hfile['how'].attrs
+    return global_how['wavelength']
+
 def mkdir(mydir):
     if os.path.exists(mydir):
         return None
