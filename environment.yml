@@ -1,0 +1,17 @@
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - numpy
+  - scipy
+  - arm_pyart
+  - wradlib
+  - numba
+  - pandas
+  - xarray
+  - cftime
+  - h5py
+  - scipy
+  - csu_radartools
+  - unravel
