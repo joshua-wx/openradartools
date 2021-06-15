@@ -3,6 +3,7 @@ import time
 import numpy as np
 import pyart
 
+import leroi
 import wradlib as wrl
 import wradlib.clutter as clutter
 os.environ["WRADLIB_DATA"] = "/g/data1a/kl02/jss548/GIS_data"
@@ -56,6 +57,10 @@ def apply_gpmmatch_calibration(radar, radar_dt, cal_dict, in_dbz_name, out_dbz_n
     else:
         radar.fields[out_dbz_name]['calibration_notes'] = error_msg
     return radar
+
+def clean_sp_leroi(radar, dbz_fname, fields_to_mask, dbz_min = 0, area_min = 50):
+    #mask invalid
+    radar = leroi.mask_invalid_data(radar, dbz_fname, add_to = grid_fields, min_field = dbz_min, min_area = area_min, return_smooth = False)
 
 def clean_sp(radar, tilt_list, in_dbz_name, out_dbz_name):
     """

@@ -88,7 +88,7 @@ def apply_zdr_calibration(radar, radar_dt, cal_dict, in_zdr_name, out_zdr_name):
         radar.fields[out_zdr_name]['calibration_notes'] = error_msg
     return radar
 
-def do_gatefilter(radar, refl_name='DBZ', phidp_name="PHIDP", rhohv_name='RHOHV_CORR', zdr_name="ZDR"):
+def do_gatefilter(radar, gf=None, refl_name='DBZ', phidp_name="PHIDP", rhohv_name='RHOHV_CORR', zdr_name="ZDR", despeckle_field=False):
     """
     Basic filtering function for dual-polarisation data.
 
@@ -96,6 +96,8 @@ def do_gatefilter(radar, refl_name='DBZ', phidp_name="PHIDP", rhohv_name='RHOHV_
     ===========
         radar:
             Py-ART radar structure.
+        gatefilter:
+            Py-ART gatefilter object.
         refl_name: str
             Reflectivity field name.
         rhohv_name: str
@@ -111,8 +113,11 @@ def do_gatefilter(radar, refl_name='DBZ', phidp_name="PHIDP", rhohv_name='RHOHV_
             Gate filter (excluding all bad data).
     """
     # Initialize gatefilter
-    # Despeckle
-    gf = pyart.correct.despeckle_field(radar, refl_name)
+    if gatefilter is None:
+        gf = pyart.correct.GateFilter(radar)
+    if despeckle_field:
+        # Despeckle
+        gf = pyart.correct.despeckle_field(radar, refl_name, gatefilter=gf)
 
     # Remove obviously wrong data.
     gf.exclude_outside(zdr_name, -6.0, 7.0)
