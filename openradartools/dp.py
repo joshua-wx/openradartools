@@ -113,7 +113,7 @@ def do_gatefilter(radar, gf=None, refl_name='DBZ', phidp_name="PHIDP", rhohv_nam
             Gate filter (excluding all bad data).
     """
     # Initialize gatefilter
-    if gatefilter is None:
+    if gf is None:
         gf = pyart.correct.GateFilter(radar)
     if despeckle_field:
         # Despeckle
