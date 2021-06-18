@@ -129,8 +129,8 @@ def nwp_profile(radar, source='era5'):
                       'units': 'm'}
     
     #interpolate to 0C and -20C levels
-    fz_level = np.round(_sounding_interp(temp_profile, geopot_profile, 0))
-    minus_20_level = np.round(_sounding_interp(temp_profile, geopot_profile, -20))
+    fz_level = np.round(sounding_interp(temp_profile, geopot_profile, 0))
+    minus_20_level = np.round(sounding_interp(temp_profile, geopot_profile, -20))
     levels_dict = {'fz_level':fz_level, 'minus_20_level':minus_20_level}
     
     #insert original profiles into a dictionary
