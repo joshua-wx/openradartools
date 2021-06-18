@@ -36,3 +36,25 @@ def calc_step(dt_list):
         mode_step = 10
     
     return mode_step
+
+def wbt(temp, rh):
+    """
+    Calculate wet bulb temperature from temperature and relative humidity.
+
+    Parameters
+    ----------
+    temp : ndarray
+        Temperature data (degrees C).
+    rh : ndarray
+        Relative humidity data (%).
+
+    Returns
+    -------
+    wb_temp : ndarray
+        Wet bulb temperature (degrees C).
+
+    """
+    wb_temp = (temp * np.arctan(0.151977*(rh+8.313659)**0.5)
+               + np.arctan(temp+rh) - np.arctan(rh-1.676331)
+               + 0.00391838*(rh**1.5)*np.arctan(0.023101*rh) - 4.686035)
+    return wb_temp
