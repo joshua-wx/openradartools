@@ -68,6 +68,7 @@ def nwp_profile(radar, source='era5'):
             temp_profile = temp_ds.air_temp.sel(lon=request_lon, method='nearest').sel(lat=request_lat, method='nearest').data[0] - 273.15 #units: deg C
         with xr.open_dataset(geop_ffn) as geop_ds:
             geopot_profile = geop_ds.geop_ht.sel(lon=request_lon, method='nearest').sel(lat=request_lat, method='nearest').data[0] #units: m
+            pres_profile = geop_ds.level.data[:]/100 #units: Pa
         with xr.open_dataset(rh_ffn) as rh_ds:
             rh_profile = rh_ds.relhum.sel(lon=request_lon, method='nearest').sel(lat=request_lat, method='nearest').data[0] #units: percentage       
 
@@ -86,19 +87,23 @@ def nwp_profile(radar, source='era5'):
             temp_profile = temp_ds.t.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:] - 273.15 #units: deg K -> C
         with xr.open_dataset(geop_ffn) as geop_ds:
             geopot_profile = geop_ds.z.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:]/9.80665 #units: m**2 s**-2 -> m
+            pres_profile = geop_ds.level.data[:] #units: hpa
         with xr.open_dataset(rh_ffn) as rh_ds:
-            rh_profile = rh_ds.r.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:] #units: percentage      
+            rh_profile = rh_ds.r.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:] #units: percentage     
         
     #flipdata (ground is first row)
     if flip:
         temp_profile = np.flipud(temp_profile)
         geopot_profile = np.flipud(geopot_profile)   
+        pres_profile = np.flipud(pres_profile)   
         rh_profile = np.flipud(rh_profile)
     
     #append surface data using lowest level
     geopot_profile = np.append([0], geopot_profile)
+    pres_profile = np.append(pres_profile[0], pres_profile)
     temp_profile = np.append(temp_profile[0], temp_profile)
     rh_profile = np.append(rh_profile[0], rh_profile)
+    
     
     #map temp and z to radar gates
     z_field, temp_field = pyart.retrieve.map_profile_to_gates(temp_profile, geopot_profile, radar)
@@ -129,7 +134,7 @@ def nwp_profile(radar, source='era5'):
     levels_dict = {'fz_level':fz_level, 'minus_20_level':minus_20_level}
     
     #insert original profiles into a dictionary
-    profile_dict = {'t':temp_profile, 'z':geopot_profile, 'r':rh_profile}
+    profile_dict = {'t':temp_profile, 'z':geopot_profile, 'r':rh_profile, 'p':pres_profile}
     
     
     return  z_field, temp_info_field, isom_field, profile_dict, levels_dict

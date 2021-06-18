@@ -3,10 +3,12 @@ from scipy.spatial import cKDTree
 
 from numba import jit
 
-def KDtree_nn_interp(data_in, x_in, y_in, x_out, y_out, nnearest = 15, maxdist = None):
+def KDtree_nn_interp(fields, x_in, y_in, x_out, y_out, nnearest = 15, maxdist = None):
     """
     Nearest neighbour interpolation using scipy KDTree
-    data_in: ndarray of float with shape (n1, n2)
+    fields: dictionary
+        Field names as keys
+        Field values as data (ndarray of float with shape (n1, n2)
         Data values to interpolate in input coordinate space
     x_in: ndarray of float with shape (n1, n2)
         x values of input coordinate space (e.g., require conversion from polar to Catesian first)
@@ -22,7 +24,7 @@ def KDtree_nn_interp(data_in, x_in, y_in, x_out, y_out, nnearest = 15, maxdist =
         maximum distance of nearest neighbours to consider when filling NaN values
         
         
-    Returns: ndarray of float with shape (n1a, n2a)
+    Returns: output_dict (dictionary). Contains same field names as fields, but with 2D Cartesian grids as values
     """
     
     def _make_coord_arrays(x):
@@ -49,7 +51,7 @@ def KDtree_nn_interp(data_in, x_in, y_in, x_out, y_out, nnearest = 15, maxdist =
 
     #transform output coordinates into pairs of coordiantes
     coord_out = _make_coord_arrays([x_out.ravel(), y_out.ravel()])
-    vals_in = data_in.ravel()
+    
 
     #build KDTree
     tree = cKDTree(np.c_[x_in.ravel(), y_in.ravel()])
@@ -60,28 +62,34 @@ def KDtree_nn_interp(data_in, x_in, y_in, x_out, y_out, nnearest = 15, maxdist =
     if dists.ndim == 1:
         dists = dists[:, np.newaxis]
         idx = idx[:, np.newaxis]
-    # get first neighbour
+    
+    output_dict = {}
+    for field_name in fields.keys():
+        vals_in = fields[field_name].ravel()
+        # get first neighbour
+        vals_out = vals_in[idx[:, 0]]
+        dists_cp = dists[..., 0].copy()
 
-    vals_out = vals_in[idx[:, 0]]
-    dists_cp = dists[..., 0].copy()
+        # iteratively fill NaN with next neighbours
+        isnan = np.isnan(vals_out)
+        nanidx = np.argwhere(isnan)[..., 0]
+        if nnearest > 1 & np.count_nonzero(isnan):
+            for i in range(nnearest - 1):
+                vals_out[isnan] = vals_in[idx[:, i + 1]][isnan]
+                dists_cp[nanidx] = dists[..., i + 1][nanidx]
+                isnan = np.isnan(vals_out)
+                nanidx = np.argwhere(isnan)[..., 0]
+                if not np.count_nonzero(isnan):
+                    break
 
-    # iteratively fill NaN with next neighbours
-    isnan = np.isnan(vals_out)
-    nanidx = np.argwhere(isnan)[..., 0]
-    if nnearest > 1 & np.count_nonzero(isnan):
-        for i in range(nnearest - 1):
-            vals_out[isnan] = vals_in[idx[:, i + 1]][isnan]
-            dists_cp[nanidx] = dists[..., i + 1][nanidx]
-            isnan = np.isnan(vals_out)
-            nanidx = np.argwhere(isnan)[..., 0]
-            if not np.count_nonzero(isnan):
-                break
-
-    #apply max distance
-    if maxdist is not None:
-        vals_out = np.where(dists_cp > maxdist, np.nan, vals_out)
-
-    return np.reshape(vals_out, x_out.shape)
+        #apply max distance
+        if maxdist is not None:
+            vals_out = np.where(dists_cp > maxdist, np.nan, vals_out)
+            
+        #append to output dictionary
+        output_dict[field_name] = np.reshape(vals_out, x_out.shape)
+        
+    return output_dict
 
 @jit
 def grid_data(data, xradar, yradar, xgrid, ygrid, theta_3db=1.5, rmax=150e3, gatespacing=250):

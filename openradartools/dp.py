@@ -283,7 +283,7 @@ def insert_ncar_pid(radar, odim_ffn, refl_name='reflectivity'):
                    "10: Dry_Snow; 11: Wet_Snow; 12: Ice_Crystals; 13: Irreg_Ice_Crystals; " +\
                    "14: Supercooled_Liquid_Droplets; 15: Flying_Insects; 16: Second_Trip; 17: Ground_Clutter; " +\
                    "18: misc1; 19: misc2"
-    pid_meta = {'data': pid_volume, 'units': ' ', 'long_name': 'NCAR Hydrometeor classification', '_FillValue': np.int16(-1),
+    pid_meta = {'data': pid_volume, 'units': ' ', 'long_name': 'NCAR Hydrometeor classification', '_FillValue': np.int16(0),
                   'standard_name': 'Hydrometeor_ID', 'comments': the_comments}
 
     return pid_meta
