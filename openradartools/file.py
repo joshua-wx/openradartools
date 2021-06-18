@@ -65,7 +65,7 @@ def pack_zip(zip_fn, zip_path,  ffn_list):
     """   
     #create path
     if not os.path.exists(zip_path):
-        util.mkdir(zip_path)
+        mkdir(zip_path)
     #zip filename
     zip_ffn    = '/'.join([zip_path,zip_fn])
     #remove if it exists
