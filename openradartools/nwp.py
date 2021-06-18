@@ -139,9 +139,9 @@ def nwp_profile(radar, source='era5'):
     
     return  z_field, temp_info_field, isom_field, profile_dict, levels_dict
 
-def _sounding_interp(snd_temp, snd_height, target_temp):
+def sounding_interp(snd_temp, snd_z, target_temp):
     """
-    Provides an linear interpolated height for a target temperature using a
+    Provides an linear interpolated height/pressure for a target temperature using a
     sounding vertical profile. Looks for first instance of temperature
     below target_temp from surface upward.
 
@@ -149,8 +149,8 @@ def _sounding_interp(snd_temp, snd_height, target_temp):
     ----------
     snd_temp : ndarray
         Temperature data (degrees C).
-    snd_height : ndarray
-        Relative height data (m).
+    snd_z : ndarray
+        Relative height data (m) or pressure (hpa).
     target_temp : float
         Target temperature to find height at (m).
 
@@ -177,7 +177,7 @@ def _sounding_interp(snd_temp, snd_height, target_temp):
     # apply linear interplation to points above and below target_temp
     set_interp = interp1d(
         snd_temp[below_ind:above_ind+1],
-        snd_height[below_ind:above_ind+1], kind='linear')
+        snd_z[below_ind:above_ind+1], kind='linear')
     
     # apply interpolant
     intp_h = set_interp(target_temp)
@@ -186,7 +186,7 @@ def _sounding_interp(snd_temp, snd_height, target_temp):
 
 def find_melting_level(temp_profile, geop_profile):
     #interpolate to required levels
-    plus10_h = _sounding_interp(temp_profile, geop_profile, 10.)
-    fz_h = _sounding_interp(temp_profile, geop_profile, 0.)
+    plus10_h = sounding_interp(temp_profile, geop_profile, 10.)
+    fz_h = sounding_interp(temp_profile, geop_profile, 0.)
     #calculate base of melting level
     return (plus10_h+fz_h)/2
