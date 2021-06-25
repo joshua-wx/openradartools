@@ -164,7 +164,7 @@ def sounding_interp(snd_temp, snd_z, target_temp):
 
     #check if target_temp is warmer than lowest level in sounding
     if target_temp>snd_temp[0]:
-        print('warning, target temp level below sounding, returning ground level (0m)')
+        print(f'warning, target temp {target_temp} warmer than lowest level in sounding {snd_temp[0]}, returning ground level (0m)')
         return 0.
     
     # find index above and below freezing level

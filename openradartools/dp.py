@@ -160,7 +160,7 @@ def correct_attenuation_zphi(
 
     a_coef, beta, c, d = pyart.correct.attenuation._param_attzphi_table()[band]
     
-    spec_at,_,_,spec_diff_at,_,_ = pyart.correct.calculate_attenuation_zphi(
+    spec_atten,_,_,spec_diff_atten,_,_ = pyart.correct.calculate_attenuation_zphi(
         radar,
         refl_field=refl_field,
         phidp_field=phidp_field,
@@ -169,30 +169,40 @@ def correct_attenuation_zphi(
         a_coef=a_coef, beta=beta, c=c, d=d)
     
     #apply mask
-    spec_at = np.ma.masked_invalid(spec_at["data"])
-    spec_diff_at = np.ma.masked_invalid(spec_diff_at["data"])
-    spec_at = np.ma.masked_where(gatefilter.gate_excluded, spec_at)
-    spec_diff_at = np.ma.masked_where(gatefilter.gate_excluded, spec_diff_at)
-    #set fill values
-    np.ma.set_fill_value(spec_at, -9999)
-    np.ma.set_fill_value(spec_diff_at, -9999)
-    
+    spec_at = np.ma.masked_invalid(spec_atten["data"])
+    spec_diff_at = np.ma.masked_invalid(spec_diff_atten["data"])
+
     #calculate attenuation offset fields
     r = radar.range["data"] / 1000
     dr = r[2] - r[1]
     na, nr = radar.fields[refl_field]["data"].shape
     #Z
-    atten_meta = pyart.config.get_metadata("path_integrated_attenuation")
-    atten = np.zeros((na, nr))
+    #calculate attenuation
+    atten = np.ma.zeros((na, nr))
     atten[:, :-1] = 2 * cumtrapz(spec_at, dx=dr)
+    #mask
+    atten = np.ma.masked_invalid(atten)
+    atten = np.ma.masked_where(gatefilter.gate_excluded, atten)
+    np.ma.set_fill_value(atten, -9999)
+    #build field
+    atten_meta = pyart.config.get_metadata("path_integrated_attenuation")
     atten_meta["data"] = atten.astype(np.float32)
-    atten_meta["comment"] =  f'Correction for dual polarisation using Z-PHI technique.'
+    atten_meta["description"] =  f'Correction for Z using Z-PHI technique.'
+    atten_meta["_FillValue"] = -9999
+    
     #ZDR
-    atten_diff_meta = pyart.config.get_metadata("path_integrateddifferential_attenuation")
-    atten_diff = np.zeros((na, nr))
+    #calculate attenuation
+    atten_diff = np.ma.zeros((na, nr))
     atten_diff[:, :-1] = 2 * cumtrapz(spec_diff_at, dx=dr)
-    atten_diff_meta["data"] = atten_diff.astype(np.float32)    
-    atten_diff_meta["comment"] =  f'Correction for dual polarisation using Z-PHI technique.'
+    #mask
+    atten_diff = np.ma.masked_invalid(atten_diff)
+    atten_diff = np.ma.masked_where(gatefilter.gate_excluded, atten_diff)
+    np.ma.set_fill_value(atten_diff, -9999)
+    #build field
+    atten_diff_meta = pyart.config.get_metadata("path_integrateddifferential_attenuation")
+    atten_diff_meta["data"] = atten_diff.astype(np.float32)   
+    atten_diff_meta["description"] =  f'Correction for ZDR using Z-PHI technique.'
+    atten_diff_meta["_FillValue"] = -9999
     #return fields
     return atten_meta, atten_diff_meta
 
