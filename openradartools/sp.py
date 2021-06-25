@@ -163,12 +163,13 @@ def c_band_attenuation(radar, radar_band, in_dbz_name, out_dbz_name, minimum_ran
     if radar_band == 'C':
         ze = 10 ** (refl_data.copy() / 10)
         ze[:, 0:min_range_indx] = 0 #mask for less than minimum range
-        atten = 1.31885e-6 * ze + 1.8041e-3
-        refl_data = refl_data + 2 * np.cumsum(atten, axis=1)
-        radar.add_field_like(in_dbz_name, out_dbz_name, refl_data, replace_existing=True)
-        radar.fields[out_dbz_name]['sp_attenuation_correction'] = f'C band correction for single polarisation. Minimum range {minimum_range}km'
-    else:
-        radar.add_field_like(in_dbz_name, out_dbz_name, refl_data, replace_existing=True)
-        radar.fields[out_dbz_name]['sp_attenuation_correction'] = 'None'
+        atten = 2 * np.cumsum(1.31885e-6 * ze + 1.8041e-3, axis=1)
+        #build attenuation field
+        atten_meta = pyart.config.get_metadata("path_integrated_attenuation")
+        atten_meta["data"] = atten.astype(np.float32)
+        atten_meta["comment"] =  f'C band correction for single polarisation. Minimum range {minimum_range}km'
         
-    return radar
+        return atten_meta
+    else:
+        
+        return None
