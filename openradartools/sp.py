@@ -150,7 +150,7 @@ def clean_sp(radar, tilt_list, in_dbz_name, out_dbz_name):
     #return radar object
     return radar, gatefilter
 
-def c_band_attenuation(radar, radar_band, in_dbz_name, out_dbz_name, minimum_range=10):
+def c_band_attenuation(radar, radar_band, in_dbz_name, minimum_range=10):
     """
     Apply C band reflectivity correction for single pol from https://github.com/vlouf/gpmmatch/blob/master/gpmmatch/correct.py
     """
