@@ -8,7 +8,10 @@ import pandas as pd
 import xarray as xr
 import cftime
 import h5py
+
 from scipy import integrate
+from scipy.integrate import cumtrapz
+
 from csu_radartools import csu_kdp, csu_fhc
 
 def det_sys_phase_gf(radar, gatefilter, phidp_field=None, first_gate=30, sweep=0):
@@ -157,7 +160,7 @@ def correct_attenuation_zphi(
 
     a_coef, beta, c, d = pyart.correct.attenuation._param_attzphi_table()[band]
     
-    _,_,cor_z,_,_,cor_zdr = pyart.correct.calculate_attenuation_zphi(
+    spec_at,_,_,spec_diff_at,_,_ = pyart.correct.calculate_attenuation_zphi(
         radar,
         refl_field=refl_field,
         phidp_field=phidp_field,
@@ -166,15 +169,32 @@ def correct_attenuation_zphi(
         a_coef=a_coef, beta=beta, c=c, d=d)
     
     #apply mask
-    cor_z = np.ma.masked_invalid(cor_z["data"])
-    cor_zdr = np.ma.masked_invalid(cor_zdr["data"])
-    cor_z = np.ma.masked_where(gatefilter.gate_excluded, cor_z)
-    cor_zdr = np.ma.masked_where(gatefilter.gate_excluded, cor_zdr)
+    spec_at = np.ma.masked_invalid(spec_at["data"])
+    spec_diff_at = np.ma.masked_invalid(spec_diff_at["data"])
+    spec_at = np.ma.masked_where(gatefilter.gate_excluded, spec_at)
+    spec_diff_at = np.ma.masked_where(gatefilter.gate_excluded, spec_diff_at)
     #set fill values
-    np.ma.set_fill_value(cor_z, -9999)
-    np.ma.set_fill_value(cor_zdr, -9999)
-    #return as float
-    return cor_z.astype(np.float32), cor_zdr.astype(np.float32)
+    np.ma.set_fill_value(spec_at, -9999)
+    np.ma.set_fill_value(spec_diff_at, -9999)
+    
+    #calculate attenuation offset fields
+    r = radar.range["data"] / 1000
+    dr = r[2] - r[1]
+    na, nr = radar.fields[refl_field]["data"].shape
+    #Z
+    atten_meta = pyart.config.get_metadata("path_integrated_attenuation")
+    atten = np.zeros((na, nr))
+    atten[:, :-1] = 2 * cumtrapz(spec_at, dx=dr)
+    atten_meta["data"] = atten.astype(np.float32)
+    atten_meta["comment"] =  f'Correction for dual polarisation using Z-PHI technique.'
+    #ZDR
+    atten_diff_meta = pyart.config.get_metadata("path_integrateddifferential_attenuation")
+    atten_diff = np.zeros((na, nr))
+    atten_diff[:, :-1] = 2 * cumtrapz(spec_diff_at, dx=dr)
+    atten_diff_meta["data"] = atten_diff.astype(np.float32)    
+    atten_diff_meta["comment"] =  f'Correction for dual polarisation using Z-PHI technique.'
+    #return fields
+    return atten_meta, atten_diff_meta
 
 def phidp_bringi(radar, gatefilter, phidp_field="PHI_UNF", refl_field='DBZ'):
     """
