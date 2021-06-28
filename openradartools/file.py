@@ -15,6 +15,10 @@ def get_wavelength(h5_ffn):
     global_how = hfile['how'].attrs
     return global_how['wavelength']
 
+def check_file_exists(ffn):
+    if not os.path.isfile(ffn):
+        raise FileNotFoundError(f'{ffn}: no such file.')
+
 def mkdir(mydir):
     if os.path.exists(mydir):
         return None
