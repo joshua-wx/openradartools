@@ -9,6 +9,8 @@ import xarray as xr
 import pandas as pd
 from scipy.interpolate import interp1d
 
+import openradartools as ort
+
 def nwp_profile(radar, source='era5'):
     """
     Compute the signal-to-noise ratio as well as interpolating the radiosounding
@@ -33,6 +35,7 @@ def nwp_profile(radar, source='era5'):
     #get radar metadata
     request_lat = radar.latitude['data'][0]
     request_lon = radar.longitude['data'][0]
+    request_alt = radar.altitude['data'][0]
     request_dt = pd.Timestamp(cftime.num2pydate(radar.time['data'][0], radar.time['units']))
         
     if source == 'access':
@@ -49,39 +52,45 @@ def nwp_profile(radar, source='era5'):
         hour_folder = str(round(request_dt.hour/model_timestep_hr)*model_timestep_hr).zfill(2) + '00'
         if hour_folder == '2400':
             hour_folder = '0000'
-        access_folder = '/'.join([access_root, datetime.strftime(request_dt, '%Y%m%d'), hour_folder, 'an', 'pl'])
+        access_folder = '/'.join([access_root, datetime.strftime(request_dt, '%Y%m%d'), hour_folder, 'an'])
+        
         #build filenames
-        temp_ffn = access_folder + '/air_temp.nc'
-        geop_ffn = access_folder + '/geop_ht.nc'
-        rh_ffn   = access_folder + '/relhum.nc'
+        temp_pl_ffn = access_folder + '/pl/air_temp.nc'
+        geop_pl_ffn = access_folder + '/pl/geop_ht.nc'
+        rh_pl_ffn   = access_folder + '/pl/relhum.nc'
+        sfc_pres_ffn = access_folder + '/sfc/sfc_pres.nc'
         
         #check if files exist
-        if not os.path.isfile(temp_ffn):
-            raise FileNotFoundError(f'{temp_ffn}: no such file for temperature.')
-        if not os.path.isfile(geop_ffn):
-            raise FileNotFoundError(f'{geop_ffn}: no such file for geopotential.')
-        if not os.path.isfile(rh_ffn):
-            raise FileNotFoundError(f'{rh_ffn}: no such file for RH.')            
-
+        ort.file.check_file_exists(temp_pl_ffn)
+        ort.file.check_file_exists(geop_pl_ffn)
+        ort.file.check_file_exists(rh_pl_ffn)
+        ort.file.check_file_exists(sfc_pres_ffn)
+            
         #extract data
-        with xr.open_dataset(temp_ffn) as temp_ds:
+        with xr.open_dataset(temp_pl_ffn) as temp_ds:
             temp_profile = temp_ds.air_temp.sel(lon=request_lon, method='nearest').sel(lat=request_lat, method='nearest').data[0] - 273.15 #units: deg C
-        with xr.open_dataset(geop_ffn) as geop_ds:
+        with xr.open_dataset(geop_pl_ffn) as geop_ds:
             geopot_profile = geop_ds.geop_ht.sel(lon=request_lon, method='nearest').sel(lat=request_lat, method='nearest').data[0] #units: m
-            pres_profile = geop_ds.level.data[:]/100 #units: Pa
-        with xr.open_dataset(rh_ffn) as rh_ds:
+            pres_profile = geop_ds.lvl.data[:]/100 #units: Pa
+        with xr.open_dataset(rh_pl_ffn) as rh_ds:
             rh_profile = rh_ds.relhum.sel(lon=request_lon, method='nearest').sel(lat=request_lat, method='nearest').data[0] #units: percentage       
+        with xr.open_dataset(sfc_pres_ffn) as sfc_pres_ds:
+            sfc_pres = sfc_pres_ds.sfc_pres.sel(lon=request_lon, method='nearest').sel(lat=request_lat, method='nearest').data[0]/100 #units: Pa       
 
     elif source == "era5":
         flip = True
         #set era path
-        era5_root = '/g/data/rt52/era5/pressure-levels/reanalysis'
+        era5_pl_root = '/g/data/rt52/era5/pressure-levels/reanalysis'
+        era5_sl_root = '/g/data/rt52/era5/single-levels/reanalysis'
+        
         #build file paths
         month_str = str(request_dt.month).zfill(2)
         year_str = str(request_dt.year)
-        temp_ffn = glob(f'{era5_root}/t/{year_str}/t_era5_oper_pl_{year_str}{month_str}*.nc')[0]
-        geop_ffn = glob(f'{era5_root}/z/{year_str}/z_era5_oper_pl_{year_str}{month_str}*.nc')[0]
-        rh_ffn   = glob(f'{era5_root}/r/{year_str}/r_era5_oper_pl_{year_str}{month_str}*.nc')[0]
+        temp_ffn = glob(f'{era5_pl_root}/t/{year_str}/t_era5_oper_pl_{year_str}{month_str}*.nc')[0]
+        geop_ffn = glob(f'{era5_pl_root}/z/{year_str}/z_era5_oper_pl_{year_str}{month_str}*.nc')[0]
+        rh_ffn   = glob(f'{era5_pl_root}/r/{year_str}/r_era5_oper_pl_{year_str}{month_str}*.nc')[0]
+        sp_ffn   = glob(f'{era5_sl_root}/sp/{year_str}/sp_era5_oper_sfc_{year_str}{month_str}*.nc')[0]
+        
         #extract data
         with xr.open_dataset(temp_ffn) as temp_ds:
             temp_profile = temp_ds.t.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:] - 273.15 #units: deg K -> C
@@ -89,8 +98,17 @@ def nwp_profile(radar, source='era5'):
             geopot_profile = geop_ds.z.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:]/9.80665 #units: m**2 s**-2 -> m
             pres_profile = geop_ds.level.data[:] #units: hpa
         with xr.open_dataset(rh_ffn) as rh_ds:
-            rh_profile = rh_ds.r.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:] #units: percentage     
+            rh_profile = rh_ds.r.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:] #units: percentage
+        with xr.open_dataset(sp_ffn) as sp_ds:
+            sfc_pres = sp_ds.sp.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data/100 #units: Pa 
         
+    #remove levels below the surface pressure
+    valid_mask     = np.logical_and(pres_profile < sfc_pres, geopot_profile > request_alt)
+    pres_profile   = pres_profile[valid_mask]    
+    temp_profile   = temp_profile[valid_mask]    
+    geopot_profile = geopot_profile[valid_mask]     
+    rh_profile     = rh_profile[valid_mask]
+    
     #flipdata (ground is first row)
     if flip:
         temp_profile = np.flipud(temp_profile)
@@ -99,14 +117,14 @@ def nwp_profile(radar, source='era5'):
         rh_profile = np.flipud(rh_profile)
     
     #append surface data using lowest level
-    geopot_profile = np.append([0], geopot_profile)
-    pres_profile = np.append(pres_profile[0], pres_profile)
-    temp_profile = np.append(temp_profile[0], temp_profile)
+    geopot_profile = np.append(request_alt, geopot_profile)
+    pres_profile = np.append(sfc_pres, pres_profile)
+    temp_profile = np.append(temp_profile[0], temp_profile) #TODO: use screen temp/RH
     rh_profile = np.append(rh_profile[0], rh_profile)
     
     
     #map temp and z to radar gates
-    z_field, temp_field = pyart.retrieve.map_profile_to_gates(temp_profile, geopot_profile, radar)
+    z_field, temp_field = pyart.retrieve.map_profile_to_gates(temp_profile, geopot_profile, radar) #geopot and temp profile with respect to MSL
     temp_info_field = {'data': temp_field['data'],  # Switch to celsius.
                       'long_name': 'Sounding temperature at gate',
                       'standard_name': 'temperature',
