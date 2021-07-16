@@ -74,7 +74,7 @@ def apply_zdr_calibration(radar, radar_dt, cal_dict, in_zdr_name, out_zdr_name):
             error_msg = 'multiple matches found in cal file'
             print('calibration data error (multiple matches)')                
         else:
-            zdr_offset = float(zdr_offset_match)
+            zdr_offset = np.float(zdr_offset_match)
     else:
         error_msg = 'no cal file found'
         zdr_offset = 0

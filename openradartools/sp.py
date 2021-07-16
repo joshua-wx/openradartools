@@ -43,7 +43,7 @@ def apply_gpmmatch_calibration(radar, radar_dt, cal_dict, in_dbz_name, out_dbz_n
             error_msg = 'multiple matches found in cal file'
             print('calibration data error (multiple matches)')                
         else:
-            dbzh_offset = float(dbzh_offset_match)
+            dbzh_offset = np.float32(dbzh_offset_match)
     else:
         error_msg = 'no cal file found'
     

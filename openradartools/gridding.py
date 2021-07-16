@@ -3,9 +3,9 @@ from scipy.spatial import cKDTree
 
 from numba import jit
 
-def KDtree_nn_interp(fields, x_in, y_in, x_out, y_out, nnearest = 15, maxdist = None):
+def KDtree_interp(fields, x_in, y_in, x_out, y_out, nnearest = 15, maxdist = None, p=2., method='nn', remove_missing=True):
     """
-    Nearest neighbour interpolation using scipy KDTree
+    Interpolation using scipy KDTree
     fields: dictionary
         Field names as keys
         Field values as data (ndarray of float with shape (n1, n2)
@@ -22,7 +22,12 @@ def KDtree_nn_interp(fields, x_in, y_in, x_out, y_out, nnearest = 15, maxdist = 
         maximum number of nearest neighbours to consider when filling NaN values
     maxdist: float (in units of Cartesian space)
         maximum distance of nearest neighbours to consider when filling NaN values
-        
+    p : float
+        inverse distance power used in 1/dist**p
+    method: string
+        either nn for nearest neighbour or idw for inverse distance weighted interpolation
+    remove_missing : bool
+        If True masks NaN values in the data values, defaults to False
         
     Returns: output_dict (dictionary). Contains same field names as fields, but with 2D Cartesian grids as values
     """
@@ -64,30 +69,69 @@ def KDtree_nn_interp(fields, x_in, y_in, x_out, y_out, nnearest = 15, maxdist = 
         idx = idx[:, np.newaxis]
     
     output_dict = {}
-    for field_name in fields.keys():
-        vals_in = fields[field_name].ravel()
-        # get first neighbour
-        vals_out = vals_in[idx[:, 0]]
-        dists_cp = dists[..., 0].copy()
+    if method == 'nn':
+        for field_name in fields.keys():
+            vals_in = fields[field_name].ravel()
+            # get first neighbour
+            vals_out = vals_in[idx[:, 0]]
+            dists_cp = dists[..., 0].copy()
 
-        # iteratively fill NaN with next neighbours
-        isnan = np.isnan(vals_out)
-        nanidx = np.argwhere(isnan)[..., 0]
-        if nnearest > 1 & np.count_nonzero(isnan):
-            for i in range(nnearest - 1):
-                vals_out[isnan] = vals_in[idx[:, i + 1]][isnan]
-                dists_cp[nanidx] = dists[..., i + 1][nanidx]
-                isnan = np.isnan(vals_out)
-                nanidx = np.argwhere(isnan)[..., 0]
-                if not np.count_nonzero(isnan):
-                    break
+            # iteratively fill NaN with next neighbours
+            isnan = np.isnan(vals_out)
+            nanidx = np.argwhere(isnan)[..., 0]
+            if nnearest > 1 & np.count_nonzero(isnan):
+                for i in range(nnearest - 1):
+                    vals_out[isnan] = vals_in[idx[:, i + 1]][isnan]
+                    dists_cp[nanidx] = dists[..., i + 1][nanidx]
+                    isnan = np.isnan(vals_out)
+                    nanidx = np.argwhere(isnan)[..., 0]
+                    if not np.count_nonzero(isnan):
+                        break
 
-        #apply max distance
-        if maxdist is not None:
-            vals_out = np.where(dists_cp > maxdist, np.nan, vals_out)
+            #apply max distance
+            if maxdist is not None:
+                interpol = np.where(dists_cp > maxdist, np.nan, vals_out)
+                
+            #append to output dictionary
+            output_dict[field_name] = np.reshape(interpol, x_out.shape)
             
-        #append to output dictionary
-        output_dict[field_name] = np.reshape(vals_out, x_out.shape)
+    elif method == 'idw':
+        weights = 1.0 / dists ** p
+        # if maxdist isn't given, take the maximum distance
+        if maxdist is not None:
+            outside = dists > maxdist
+            weights[outside] = 0
+        # take care of point coincidence
+        weights[np.isposinf(weights)] = 1e12
+        
+        for field_name in fields.keys():
+            #load vals
+            vals_in = fields[field_name].ravel()
+            # shape handling (time, ensemble etc)
+            wshape = weights.shape
+            weights.shape = wshape + ((vals_in.ndim - 1) * (1,))
+
+            # expand vals to trg grid
+            vals_out = vals_in[idx]
+
+            # nan handling
+            if remove_missing:
+                isnan = np.isnan(vals_out)
+                weights = np.broadcast_to(weights, isnan.shape)
+                masked_weights = np.ma.array(weights, mask=isnan)
+
+                interpol = np.nansum(weights * vals_out, axis=1) / np.sum(
+                    masked_weights, axis=1
+                )
+                interpol = interpol.filled(np.nan)
+            else:
+                interpol = np.sum(weights * vals_out, axis=1) / np.sum(weights, axis=1)
+            
+            #append to output dictionary
+            output_dict[field_name] = np.reshape(interpol, x_out.shape)
+        
+    else:
+        raise ValueError('unknown method for KDtree_interp')
         
     return output_dict
 

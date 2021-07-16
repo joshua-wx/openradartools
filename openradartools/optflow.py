@@ -2,6 +2,7 @@ import numpy as np
 import scipy.ndimage.interpolation as ip
 import scipy.optimize as op
 from scipy.ndimage import map_coordinates
+from skimage.filters import gaussian
 
 #from pysteps
 def constant_advection(R, **kwargs):
@@ -37,93 +38,134 @@ def constant_advection(R, **kwargs):
 
     return np.stack([-result.x[0] * np.ones((m, n)), -result.x[1] * np.ones((m, n))])
 
+# #from pysteps
+# def advection_correction(R, V, T=5, t=1, mode='max'):
+#     """
+#     R = np.array([qpe_previous, qpe_current])
+#     V = np.array of optical flow vectors [x,y]
+#     T = time between two observations (5 min)
+#     t = interpolation timestep (1 min)
+#     """
+    
+#     # Perform temporal interpolation
+#     Rd = np.zeros((R[0].shape))
+#     x, y = np.meshgrid(
+#         np.arange(R[0].shape[1], dtype=float), np.arange(R[0].shape[0], dtype=float),
+#     )
+#     for i in range(t, T + t, t):
+
+#         pos1 = (y - i / T * V[1], x - i / T * V[0])
+#         R1 = map_coordinates(R[0], pos1, order=1)
+
+#         pos2 = (y + (T - i) / T * V[1], x + (T - i) / T * V[0])
+#         R2 = map_coordinates(R[1], pos2, order=1)
+
+#         Rd_temp = np.amax(np.stack((R1, R2), axis=2), axis=2)
+        
+#         if mode == 'max':
+#             #take the maximum when accumulating the swath
+#             Rd = np.amax(np.stack((Rd, Rd_temp), axis=2), axis=2)
+#         elif mode == 'sum':
+#             #take the sum when accumulating the swath
+#             Rd = np.sum(np.stack((Rd, Rd_temp), axis=2), axis=2)
+#         else:
+#             print('unknown mode')
+#     return Rd
+
 #from pysteps
-def advection_correction(R, V, T=5, t=1, mode='max'):
+def advection_nowcast(R, V, t=1, T=5, T_end=30, mode='max', fill=0, round_R=False):
     """
-    R = np.array([qpe_previous, qpe_current])
+    R = np.array of qpe_current
     V = np.array of optical flow vectors [x,y]
     T = time between two observations (5 min)
+    end_T = end time for nowcast
     t = interpolation timestep (1 min)
     """
     
     # Perform temporal interpolation
-    Rd = np.zeros((R[0].shape))
+    Rd = np.zeros((R.shape))
     x, y = np.meshgrid(
-        np.arange(R[0].shape[1], dtype=float), np.arange(R[0].shape[0], dtype=float),
+        np.arange(R.shape[1], dtype=float), np.arange(R.shape[0], dtype=float),
     )
-    for i in range(t, T + t, t):
-
-        pos1 = (y - i / T * V[1], x - i / T * V[0])
-        R1 = map_coordinates(R[0], pos1, order=1)
-
-        pos2 = (y + (T - i) / T * V[1], x + (T - i) / T * V[0])
-        R2 = map_coordinates(R[1], pos2, order=1)
-
-        Rd_temp = np.amax(np.stack((R1, R2), axis=2), axis=2)
+    #smooth R
+    Rsmooth = gaussian(R.filled(fill), sigma=1)
+    if round_R:
+        Rsmooth = np.round(Rsmooth)
+    
+    for i in np.arange(t, (T_end/T) + t, t):
+        
+        #dilated_R = dilation(dilated_R, selem=np.ones((3,3)))
+        
+        ts_forward = -i
+        y_shift = y + (ts_forward * V[1])
+        x_shift = x + (ts_forward * V[0])
+        pos = (y_shift, x_shift)
+        R_new = map_coordinates(Rsmooth, pos, order=1)
         
         if mode == 'max':
             #take the maximum when accumulating the swath
-            Rd = np.amax(np.stack((Rd, Rd_temp), axis=2), axis=2)
+            Rd = np.amax(np.stack((Rd, R_new), axis=2), axis=2)
         elif mode == 'sum':
             #take the sum when accumulating the swath
-            Rd = np.sum(np.stack((Rd, Rd_temp), axis=2), axis=2)
+            Rd = np.sum(np.stack((Rd, R_new), axis=2), axis=2)
         else:
             print('unknown mode')
     return Rd
 
 
-# def advection(data1, data2,
-#               oflow1_pix, oflow2_pix,
-#               T_start=0, T_end=6,
-#               T=6, t=1,
-#               mode='max'):
-#     """
-#     WHAT:
-#     Applies the optical flow from data 1 and data 2 at an interval of t.
-#     T_start and T_stop allow the user to advect across a portion of the time between the datasets
-#     By setting the mode to max and sum, different accumulations can be achived.
+def advection(R,
+              V,
+              T_start=0, T_end=6,
+              T=6, t=1,
+              mode='max'):
+    """
+    WHAT:
+    Applies the optical flow from data 1 and data 2 at an interval of t.
+    T_start and T_stop allow the user to advect across a portion of the time between the datasets
+    By setting the mode to max and sum, different accumulations can be achived.
     
-#     HELP
-#     note: first radar volume is the oldest. second radar volume is the newest.
+    HELP
+    note: first radar volume is the oldest. second radar volume is the newest.
 
-#     INPUTS
-#     rrate1/rrate2: rain rate (mm/hr) for first radar volume and second radar volume
-#     oflow1_pix/oflow2_pix: optical flow (pix/min) in [u and v] direction for first radar volume and second radar volume (list of length 2, elements are 2D np.array)
-#     T_start: starting timestep (minutes from radar volume 1) for interpolation (0 will include the first radar timestep)
-#     T_end: ending timestep (minutes from radar volume 2) for interpolation (T_end=T will include the second radar timestep)
-#     T: time difference between radar volumes (minutes)
-#     t: timestep for interpolation (minutes)
+    INPUTS
+    R: list of ndarray. intensity values from first radar volume and second radar volume
+    oflow_pix: optical flow (pix/min) in [u and v] between the first radar volume and second radar volume
+    T_start: starting timestep (minutes from radar volume 1) for interpolation (0 will include the first radar timestep)
+    T_end: ending timestep (minutes from radar volume 2) for interpolation (T_end=T will include the second radar timestep)
+    T: time difference between radar volumes (minutes)
+    t: timestep for interpolation (minutes)
     
-#     OUTPUTS:
-#     r_acc: accumulated rainfall totals (mm)
-#     """
+    OUTPUTS:
+    r_acc: accumulated rainfall totals (mm)
+    """
 
-#     # Perform temporal interpolation
-#     r_acc = np.zeros((data1.shape))
-#     x, y = np.meshgrid(
-#         np.arange(rrate1.shape[1], dtype=float), np.arange(rrate1.shape[0], dtype=float)
-#     )
-#     for i in range(T_start, T_end + t, t):
-#         #shift timestep 1 forwards (this is the older timestep)
-#         ts_forward = -i
-#         y1_shift = y + (ts_forward * oflow1_pix[1])
-#         x1_shift = x + (ts_forward * oflow1_pix[0])
-#         pos1 = (y1_shift, x1_shift)
-#         R1 = map_coordinates(rrate1, pos1, order=1)
-#         weight1 = (T - i)/T
+    
+    
+    # Perform temporal interpolation
+    Rd = np.zeros((R[0].shape))
+    x, y = np.meshgrid(
+        np.arange(Rd.shape[1], dtype=float), np.arange(Rd.shape[0], dtype=float)
+    )
+    for i in range(T_start, T_end + t, t):
+        #shift timestep 1 forwards (this is the older timestep)
+        pos1 = (y - i / T * V[1], x - i / T * V[0])
+        R1 = map_coordinates(R[0], pos1, order=1)
+        weight1 = (T - i)/T
 
-#         #shift timestep 2 backwards (this is the newer timestep)
-#         ts_backwards = (T-i)
-#         y2_shift = y + (ts_backwards * oflow2_pix[1])
-#         x2_shift = x + (ts_backwards * oflow2_pix[0])
-#         pos2 = (y2_shift, x2_shift)
-#         R2 = map_coordinates(rrate2, pos2, order=1)
-#         weight2 = i/T
+        #shift timestep 2 backwards (this is the newer timestep)
+        pos2 = (y + (T - i) / T * V[1], x + (T - i) / T * V[0])
+        R2 = map_coordinates(R[1], pos2, order=1)
+        weight2 = i/T
 
-#         #weighted combination
-#         rrate_interp = R1 * weight1 + R2 * weight2
+        #weighted combination
+        R_new = R1 * weight1 + R2 * weight2
 
-#         #convert to mm/hr in mm
-#         r_acc += rrate_interp/60*t
-        
-#     return r_acc
+        #convert to mm/hr in mm
+        if mode == 'sum':
+            Rd = np.sum(np.stack((Rd, R_new), axis=2), axis=2)
+        elif mode == 'max':
+            Rd = np.amax(np.stack((Rd, R_new), axis=2), axis=2)
+        else:
+            print('unknown mode')
+    
+    return Rd
