@@ -43,7 +43,7 @@ def list_to_dt(str_list, str_format):
 
     Parameters
     ----------
-    dt_list : list
+    str_list : list
         list of time/date strings
     str_format : string
         datetime format string
