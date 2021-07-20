@@ -37,7 +37,7 @@ def calc_step(dt_list):
     
     return mode_step
 
-def list_to_dt(dt_list, str_format):
+def list_to_dt(str_list, str_format):
     """
     Convert a list of string to a list of datetimes using the str_format
 
@@ -56,7 +56,7 @@ def list_to_dt(dt_list, str_format):
     """
     
     dt_list = []
-    for item in dt_list:
+    for item in str_list:
         dt_list.append(datetime.strptime(item, str_format))
         
     return dt_list
