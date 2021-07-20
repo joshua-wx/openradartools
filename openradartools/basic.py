@@ -37,6 +37,31 @@ def calc_step(dt_list):
     
     return mode_step
 
+def list_to_dt(dt_list, str_format):
+    """
+    Convert a list of string to a list of datetimes using the str_format
+
+    Parameters
+    ----------
+    dt_list : list
+        list of time/date strings
+    str_format : string
+        datetime format string
+
+    Returns
+    -------
+    dt_list : list
+        list of datetime values
+
+    """
+    
+    dt_list = []
+    for item in dt_list:
+        dt_list.append(datetime.strptime(item, str_format))
+        
+    return dt_list
+    
+
 def wbt(temp, rh):
     """
     Calculate wet bulb temperature from temperature and relative humidity.
