@@ -149,9 +149,12 @@ def read_odim(odim_ffn, siteinfo_ffn=None):
     radar_id = int(os.path.basename(odim_ffn)[:2])
     dt = datetime.strptime(os.path.basename(odim_ffn)[3:18],'%Y%m%d_%H%M%S')
     
+    #read sites
     if siteinfo_ffn is None:
         #use default
         siteinfo_ffn = '/g/data/rq0/level_1/odim_pvol/radar_site_list.csv'
+    config_dict = read_csv(siteinfo_ffn, 0)
+    site_idx = findin_sitelist(config_dict, radar_id, dt)
         
     #read radar object
     radar = pyart.aux_io.read_odim_h5(odim_ffn, file_field_names=True)
@@ -167,7 +170,17 @@ def read_odim(odim_ffn, siteinfo_ffn=None):
     #insert meta data if missing
     with h5py.File(odim_ffn, 'r') as hfile:
         global_how = hfile['how'].attrs
-        frequency = global_how['rapic_FREQUENCY']
+        try:
+            frequency = global_how['rapic_FREQUENCY']
+        except:
+            print('ort.file.read_odim: file does not contain frequency, using default for band')
+            band = config_dict['band'][site_idx]
+            if band == 'C':
+                frequency = 5625 #C band MHz
+            elif band == 'S':
+                frequency = 2860 #S band MHz
+            else:
+                frequency = -9999 #unknown           
         try:
             beamwH = global_how['beamwH']
             beamwV = global_how['beamwV']
@@ -193,8 +206,6 @@ def read_odim(odim_ffn, siteinfo_ffn=None):
     radar.instrument_parameters = {'frequency':freq_dict, 'radar_beam_width_h':bwh_dict, 'radar_beam_width_v':bwv_dict}
         
     #update latlonalt data
-    config_dict = read_csv(siteinfo_ffn, 0)
-    site_idx = findin_sitelist(config_dict, radar_id, dt)
     radar.latitude['data'] = np.array([config_dict['site_lat'][site_idx]])
     radar.longitude['data'] = np.array([config_dict['site_lon'][site_idx]])
     radar.altitude['data'] = np.array([config_dict['site_alt'][site_idx]])
