@@ -75,15 +75,15 @@ def constant_advection(R, **kwargs):
 #from pysteps
 def advection_nowcast(R, V, t=1, T=5, T_end=30, mode='max', fill=0, round_R=False):
     """
-    R = np.array of qpe_current
-    V = np.array of optical flow vectors [x,y]
+    R = np.ma.array of qpe_current
+    V = np.ma.array of optical flow vectors [x,y]
     T = time between two observations (5 min)
     end_T = end time for nowcast
     t = interpolation timestep (1 min)
     """
     
     # Perform temporal interpolation
-    Rd = np.zeros((R.shape))
+    Rd = np.ma.zeros((R.shape))
     x, y = np.meshgrid(
         np.arange(R.shape[1], dtype=float), np.arange(R.shape[0], dtype=float),
     )
@@ -101,16 +101,17 @@ def advection_nowcast(R, V, t=1, T=5, T_end=30, mode='max', fill=0, round_R=Fals
         x_shift = x + (ts_forward * V[0])
         pos = (y_shift, x_shift)
         R_new = map_coordinates(Rsmooth, pos, order=1)
-        
+        R_new = np.ma.masked_array(R_new, R.mask)
         if mode == 'max':
             #take the maximum when accumulating the swath
-            Rd = np.amax(np.stack((Rd, R_new), axis=2), axis=2)
+            Rd = np.ma.max(np.ma.stack((Rd, R_new), axis=2), axis=2, fill_value=0)
         elif mode == 'sum':
             #take the sum when accumulating the swath
-            Rd = np.sum(np.stack((Rd, R_new), axis=2), axis=2)
+            Rd = np.ma.sum(np.ma.stack((Rd, R_new), axis=2), axis=2)
         else:
             print('unknown mode')
-    return Rd
+            
+    return np.ma.masked_array(Rd, Rd==0)
 
 
 def advection(R,
@@ -142,7 +143,7 @@ def advection(R,
     
     
     # Perform temporal interpolation
-    Rd = np.zeros((R[0].shape))
+    Rd = np.ma.zeros((R[0].shape))
     x, y = np.meshgrid(
         np.arange(Rd.shape[1], dtype=float), np.arange(Rd.shape[0], dtype=float)
     )
@@ -150,22 +151,23 @@ def advection(R,
         #shift timestep 1 forwards (this is the older timestep)
         pos1 = (y - i / T * V[1], x - i / T * V[0])
         R1 = map_coordinates(R[0], pos1, order=1)
+        R1 = np.ma.masked_array(R1, R[0].mask)
         weight1 = (T - i)/T
 
         #shift timestep 2 backwards (this is the newer timestep)
         pos2 = (y + (T - i) / T * V[1], x + (T - i) / T * V[0])
         R2 = map_coordinates(R[1], pos2, order=1)
+        R2 = np.ma.masked_array(R2, R[1].mask)
         weight2 = i/T
-
+        
         #weighted combination
         R_new = R1 * weight1 + R2 * weight2
-
         #convert to mm/hr in mm
         if mode == 'sum':
-            Rd = np.sum(np.stack((Rd, R_new), axis=2), axis=2)
+            Rd = np.ma.sum(np.ma.stack((Rd, R_new), axis=2), axis=2) #ma assigned to 0
         elif mode == 'max':
-            Rd = np.amax(np.stack((Rd, R_new), axis=2), axis=2)
+            Rd = np.ma.max(np.ma.stack((Rd, R_new), axis=2), axis=2, fill_value=0) #ma assigned to 0
         else:
             print('unknown mode')
     
-    return Rd
+    return np.ma.masked_array(Rd, Rd==0)
