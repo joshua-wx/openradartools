@@ -11,6 +11,37 @@ from scipy.interpolate import interp1d
 
 import openradartools as ort
 
+def nwp_mesh_levels(request_dt, request_lat, request_lon):
+    
+    """
+    minimal version of nwp profiles designed for only mesh levels
+    """
+    
+    #set era path
+    era5_root = '/g/data/rt52/era5/pressure-levels/reanalysis'
+    
+    #build file paths
+    month_str = request_dt.month
+    year_str = request_dt.year
+    temp_ffn = glob(f'{era5_root}/t/{year_str}/t_era5_oper_pl_{year_str}{month_str:02}*.nc')[0]
+    geop_ffn = glob(f'{era5_root}/z/{year_str}/z_era5_oper_pl_{year_str}{month_str:02}*.nc')[0]
+    
+    #extract data
+    with xr.open_dataset(temp_ffn) as temp_ds:
+        temp_data = temp_ds.t.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:] - 273.15 #units: deg K -> C
+    with xr.open_dataset(geop_ffn) as geop_ds:
+        geop_data = geop_ds.z.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:]/9.80665 #units: m**2 s**-2 -> m
+    #flipdata (ground is first row)
+    temp_data = np.flipud(temp_data)
+    geop_data = np.flipud(geop_data)
+    
+    #interpolate to 0C and -20C levels
+    fz_level = np.round(ort.nwp.sounding_interp(temp_data, geop_data, 0))
+    minus_20_level = np.round(ort.nwp.sounding_interp(temp_data, geop_data, -20))
+    
+    return [fz_level, minus_20_level]
+
+
 def nwp_profile(radar, source='era5'):
     """
     Compute the signal-to-noise ratio as well as interpolating the radiosounding
