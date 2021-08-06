@@ -3,7 +3,7 @@ from scipy.spatial import cKDTree
 
 from numba import jit
 
-def KDtree_interp(fields, x_in, y_in, x_out, y_out, nnearest = 15, maxdist = None, p=2., method='nn', remove_missing=True):
+def KDtree_interp(fields, x_in, y_in, x_out, y_out, nnearest = 15, maxdist = None, p=2., method='nn', remove_missing=True, workers=1):
     """
     Interpolation using scipy KDTree
     fields: dictionary
@@ -28,6 +28,8 @@ def KDtree_interp(fields, x_in, y_in, x_out, y_out, nnearest = 15, maxdist = Non
         either nn for nearest neighbour or idw for inverse distance weighted interpolation
     remove_missing : bool
         If True masks NaN values in the data values, defaults to False
+    workers: int
+        Number of threads to use for cKDTree.query. Must be less than NCPU. Use -1 for all threads.
         
     Returns: output_dict (dictionary). Contains same field names as fields, but with 2D Cartesian grids as values
     """
@@ -62,7 +64,7 @@ def KDtree_interp(fields, x_in, y_in, x_out, y_out, nnearest = 15, maxdist = Non
     tree = cKDTree(np.c_[x_in.ravel(), y_in.ravel()])
 
     #query tree using output coordinates
-    dists, idx = tree.query(coord_out, k=nnearest+1)
+    dists, idx = tree.query(coord_out, k=nnearest+1, workers=workers)
     # avoid bug, if there is only one neighbor at all
     if dists.ndim == 1:
         dists = dists[:, np.newaxis]
