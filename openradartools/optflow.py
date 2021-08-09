@@ -73,7 +73,7 @@ def constant_advection(R, **kwargs):
 #     return Rd
 
 #from pysteps
-def advection_nowcast(R, V, t=1, T=5, T_end=30, mode='max', fill=0, round_R=False):
+def advection_nowcast(R, V, t=1, T=5, T_end=30, mode='max', round_R=False):
     """
     R = np.ma.array of qpe_current
     V = np.ma.array of optical flow vectors [x,y]
@@ -83,12 +83,12 @@ def advection_nowcast(R, V, t=1, T=5, T_end=30, mode='max', fill=0, round_R=Fals
     """
     
     # Perform temporal interpolation
-    Rd = np.ma.zeros((R.shape))
+    Rd = np.zeros((R.shape))
     x, y = np.meshgrid(
         np.arange(R.shape[1], dtype=float), np.arange(R.shape[0], dtype=float),
     )
     #smooth R
-    Rsmooth = gaussian(R.filled(fill), sigma=1)
+    Rsmooth = gaussian(R, sigma=1)
     if round_R:
         Rsmooth = np.round(Rsmooth)
     
@@ -101,24 +101,24 @@ def advection_nowcast(R, V, t=1, T=5, T_end=30, mode='max', fill=0, round_R=Fals
         x_shift = x + (ts_forward * V[0])
         pos = (y_shift, x_shift)
         R_new = map_coordinates(Rsmooth, pos, order=1)
-        R_new = np.ma.masked_array(R_new, R.mask)
         if mode == 'max':
             #take the maximum when accumulating the swath
-            Rd = np.ma.max(np.ma.stack((Rd, R_new), axis=2), axis=2, fill_value=0)
+            Rd = np.max(np.stack((Rd, R_new), axis=2), axis=2)
         elif mode == 'sum':
             #take the sum when accumulating the swath
-            Rd = np.ma.sum(np.ma.stack((Rd, R_new), axis=2), axis=2)
+            Rd = np.sum(np.stack((Rd, R_new), axis=2), axis=2)
         else:
             print('unknown mode')
             
-    return np.ma.masked_array(Rd, Rd==0)
+    return Rd
 
 
 def advection(R,
               V,
               T_start=0, T_end=6,
               T=6, t=1,
-              mode='max'):
+              mode='max',
+              nodata=-1):
     """
     WHAT:
     Applies the optical flow from data 1 and data 2 at an interval of t.
@@ -143,7 +143,7 @@ def advection(R,
     
     
     # Perform temporal interpolation
-    Rd = np.ma.zeros((R[0].shape))
+    Rd = np.zeros((R[0].shape))
     x, y = np.meshgrid(
         np.arange(Rd.shape[1], dtype=float), np.arange(Rd.shape[0], dtype=float)
     )
@@ -151,23 +151,27 @@ def advection(R,
         #shift timestep 1 forwards (this is the older timestep)
         pos1 = (y - i / T * V[1], x - i / T * V[0])
         R1 = map_coordinates(R[0], pos1, order=1)
-        R1 = np.ma.masked_array(R1, R[0].mask)
+        #R1 = np.ma.masked_array(R1, R[0].mask)
         weight1 = (T - i)/T
 
         #shift timestep 2 backwards (this is the newer timestep)
         pos2 = (y + (T - i) / T * V[1], x + (T - i) / T * V[0])
         R2 = map_coordinates(R[1], pos2, order=1)
-        R2 = np.ma.masked_array(R2, R[1].mask)
+        #R2 = np.ma.masked_array(R2, R[1].mask)
         weight2 = i/T
         
         #weighted combination
         R_new = R1 * weight1 + R2 * weight2
-        #convert to mm/hr in mm
+        #apply stat of either sum or max
         if mode == 'sum':
-            Rd = np.ma.sum(np.ma.stack((Rd, R_new), axis=2), axis=2) #ma assigned to 0
+            Rd = np.sum(np.stack((Rd, R_new), axis=2), axis=2)
         elif mode == 'max':
-            Rd = np.ma.max(np.ma.stack((Rd, R_new), axis=2), axis=2, fill_value=0) #ma assigned to 0
+            Rd = np.max(np.stack((Rd, R_new), axis=2), axis=2)
         else:
             print('unknown mode')
+        #apply nodata mask
+        Rd[R[0] == nodata] = nodata
+            
+        
     
-    return np.ma.masked_array(Rd, Rd==0)
+    return Rd
