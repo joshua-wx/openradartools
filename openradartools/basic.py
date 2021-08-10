@@ -105,7 +105,7 @@ def cfradial_to_3dgrid(radar, field_name='reflectivity'):
     """
 
     #sorted elevation
-    el_sort_idx = np.argsort(radar.elevation['data'])
+    el_sort_idx = np.argsort(radar.fixed_angle['data'])
     az = radar.get_azimuth(0)
     rg = radar.range['data']
 
@@ -114,7 +114,7 @@ def cfradial_to_3dgrid(radar, field_name='reflectivity'):
 
     #insert sweeps into 3D grid
     for i, el_idx in enumerate(el_sort_idx):
-        data_grid[i, :, :] = radar.get_field(el_idx, field_name)
+        data_grid[:, :, i] = radar.get_field(el_idx, field_name)
 
     #create dictionary for coordinates (in order)
     coordinates = {'azimuth':az, 'range':rg, 'elevation':radar.elevation['data'][el_sort_idx]}
