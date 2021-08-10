@@ -2,6 +2,8 @@ from datetime import datetime, timedelta
 import statistics
 import numpy as np
 
+import pyart
+
 def chunks(l, n):
     """
     Yield successive n-sized chunks from l.
@@ -128,8 +130,8 @@ def get_radar_z(radar):
     INPUTS:
         radar (pyart radar object)
     OUTPUTS:
-        z (np.array)
-            altitude array (m)
+        height_dict (dictionary)
+            pyart field with height data and necessary metadata (defaults)
     
     """
     # retrieve the Z coordinates of the radar gates
@@ -139,6 +141,10 @@ def get_radar_z(radar):
     # Check that z is not a MaskedArray
     if isinstance(z, np.ma.MaskedArray):
         z = z.filled(np.NaN)
-    z = z + radar.altitude['data'][0]
     
-    return z
+    height_field = pyart.config.get_field_name('height')
+    height_dict = pyart.config.get_metadata(height_field)
+    height_dict['data'] = z + radar.altitude['data'][0]
+
+    
+    return height_dict
