@@ -83,3 +83,38 @@ def wbt(temp, rh):
                + np.arctan(temp+rh) - np.arctan(rh-1.676331)
                + 0.00391838*(rh**1.5)*np.arctan(0.023101*rh) - 4.686035)
     return wb_temp
+
+def cfradial_to_3dgrid(radar, field_name='reflectivity'):
+    
+    """
+    Converts a radar field from the 2D cfradial representation to a 3D grid
+    with dimensions azimuth, range and elevation.
+    Also sorts out elevation so the first elevation is the lowest elevation.
+    
+    INPUTS:
+        radar (pyart radar object)
+        field_name (string)
+            name of field in pyart object
+    OUTPUTS:
+        data_grid (np.ma.array)
+            Output 3D array
+        coordinates (dictionary)
+            coordinate vector of 3D array in their order of representation
+    """
+
+    #sorted elevation
+    el_sort_idx = np.argsort(radar.elevation['data'])
+    az = radar.get_azimuth(0)
+    rg = radar.range['data']
+
+    #init 3D grid
+    data_grid = np.ma.zeros((len(az), len(rg), len(el_sort_idx)))
+
+    #insert sweeps into 3D grid
+    for i, el_idx in enumerate(el_sort_idx):
+        data_grid[i, :, :] = radar.get_field(el_idx, field_name)
+
+    #create dictionary for coordinates (in order)
+    coordinates = {'azimuth':az, 'range':rg, 'elevation':radar.elevation['data'][el_sort_idx]}
+
+    return data_grid, coordinates
