@@ -110,11 +110,11 @@ def cfradial_to_3dgrid(radar, field_name='reflectivity'):
     rg = radar.range['data']
 
     #init 3D grid
-    data_grid = np.ma.zeros((len(az), len(rg), len(el_sort_idx)))
+    data_grid = np.ma.zeros((len(el_sort_idx), len(az), len(rg)))
 
     #insert sweeps into 3D grid
     for i, el_idx in enumerate(el_sort_idx):
-        data_grid[:, :, i] = radar.get_field(el_idx, field_name)
+        data_grid[i, :, :] = radar.get_field(el_idx, field_name)
 
     #create dictionary for coordinates (in order)
     coordinates = {'azimuth':az, 'range':rg, 'elevation':radar.elevation['data'][el_sort_idx]}
@@ -148,3 +148,27 @@ def get_radar_z(radar):
 
     
     return height_dict
+
+def get_lowest_valid_2dgrid(data, bad=np.nan):
+
+    """
+    Returns the lowest valid data values (valid defined by mask) from a 3D array.
+    The "vertical" axis must by the first axis.
+    
+    INPUT:
+        data: np.ma.array
+            input data of size (n,m,p)
+        bad: float/numpy object
+            value to assign to invalid elements in the output array
+    OUTPUT:
+        np.ma.array of size (m,p)
+    """
+    
+    data_shape = data.shape
+    #find the lowest unmasked value by first finding edges
+    edges = np.ma.notmasked_edges(data, axis=2)
+    #use first edge on axis 0 (lowest in height)
+    output = np.zeros((data_shape[0], data_shape[1])) + bad
+    output[edges[0][0], edges[0][1]] = data[edges[0]]
+    
+    return np.ma.masked_array(output, output==bad)
