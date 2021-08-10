@@ -118,3 +118,27 @@ def cfradial_to_3dgrid(radar, field_name='reflectivity'):
     coordinates = {'azimuth':az, 'range':rg, 'elevation':radar.elevation['data'][el_sort_idx]}
 
     return data_grid, coordinates
+
+def get_radar_z(radar):
+    
+    """
+    uses the pyart antenna_to_cartesian function to derive the 
+    altitude of each radar sample above the ground (using the radar altitude)
+    
+    INPUTS:
+        radar (pyart radar object)
+    OUTPUTS:
+        z (np.array)
+            altitude array (m)
+    
+    """
+    # retrieve the Z coordinates of the radar gates
+    rg, azg = np.meshgrid(radar.range['data'], radar.azimuth['data'])
+    rg, eleg = np.meshgrid(radar.range['data'], radar.elevation['data'])
+    _, _, z = pyart.core.transforms.antenna_to_cartesian(rg / 1000.0, azg, eleg)
+    # Check that z is not a MaskedArray
+    if isinstance(z, np.ma.MaskedArray):
+        z = z.filled(np.NaN)
+    z = z + radar.altitude['data'][0]
+    
+    return z
