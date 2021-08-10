@@ -117,7 +117,7 @@ def cfradial_to_3dgrid(radar, field_name='reflectivity'):
         data_grid[i, :, :] = radar.get_field(el_idx, field_name)
 
     #create dictionary for coordinates (in order)
-    coordinates = {'azimuth':az, 'range':rg, 'elevation':radar.elevation['data'][el_sort_idx]}
+    coordinates = { 'elevation':radar.elevation['data'][el_sort_idx], 'azimuth':az, 'range':rg}
 
     return data_grid, coordinates
 
@@ -166,10 +166,10 @@ def get_lowest_valid_2dgrid(data, bad=np.nan):
     
     data_shape = data.shape
     #find the lowest unmasked value by first finding edges
-    edges = np.ma.notmasked_edges(data, axis=2)
+    edges = np.ma.notmasked_edges(data, axis=0)
     #use first edge on axis 0 (lowest in height)
-    output = np.zeros((data_shape[0], data_shape[1])) + bad
-    output[edges[0][0], edges[0][1]] = data[edges[0]]
+    output = np.zeros((data_shape[1], data_shape[2])) + bad
+    output[edges[0][1], edges[0][2]] = data[edges[0]]
     #mask
     output = np.ma.masked_array(output, output==bad)
     
