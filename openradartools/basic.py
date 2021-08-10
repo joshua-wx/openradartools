@@ -162,7 +162,6 @@ def get_lowest_valid_2dgrid(data, bad=np.nan):
             value to assign to invalid elements in the output array
     OUTPUT:
         output: np.ma.array of size (m,p)
-        edges: np.array of size (2,o) containing the index of the lowest valid element
     """
     
     data_shape = data.shape
@@ -174,4 +173,4 @@ def get_lowest_valid_2dgrid(data, bad=np.nan):
     #mask
     output = np.ma.masked_array(output, output==bad)
     
-    return output, edges[0]
+    return output
