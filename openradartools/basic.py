@@ -135,9 +135,13 @@ def get_radar_z(radar):
     
     """
     # retrieve the Z coordinates of the radar gates
-    rg, azg = np.meshgrid(radar.range['data'], radar.azimuth['data'])
-    rg, eleg = np.meshgrid(radar.range['data'], radar.elevation['data'])
-    _, _, z = pyart.core.transforms.antenna_to_cartesian(rg / 1000.0, azg, eleg)
+    az = radar.get_azimuth(0)
+    rg = radar.range['data']
+    el = radar.fixed_angle['data']
+    
+    rg_grid, az_grid = np.meshgrid(rg, az)
+    rg_grid, el_grid = np.meshgrid(rg, el)
+    _, _, z = pyart.core.transforms.antenna_to_cartesian(rg_grid / 1000.0, rg, az)
     # Check that z is not a MaskedArray
     if isinstance(z, np.ma.MaskedArray):
         z = z.filled(np.NaN)
