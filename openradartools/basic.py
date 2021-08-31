@@ -4,6 +4,31 @@ import numpy as np
 
 import pyart
 
+def get_id_from_filename(filename, delimiter='_'):
+    """
+    INPUT:
+    filename (str):
+        can contain path, has no impact on this function.
+        filename must use the convention IDDDD + delimiter + everything else 
+    OUTPUT:
+    radar_id (int)
+    """
+    if not isinstance(test_string, str):
+        raise ValueError(f"get_id_from_filename: filename is not a string: {filename}")
+        return None
+    if delimiter not in fn:
+        raise ValueError(f"get_id_from_filename: Delimiter not found in filename: {filename}")
+        return None
+    fn = os.path.basename(filename)
+    fn_parts = fn.split(delimiter)
+    try:
+        radar_id = int(fn_parts[0])
+        return radar_id
+    except:
+        raise ValueError(f"get_id_from_filename: Failed to extract radar if from: {filename}")
+        return None
+        
+
 def chunks(l, n):
     """
     Yield successive n-sized chunks from l.

@@ -182,12 +182,18 @@ def read_odim(odim_ffn, siteinfo_ffn=None):
             else:
                 frequency = -9999 #unknown           
         try:
+            #H and V beamwidth from file
             beamwH = global_how['beamwH']
             beamwV = global_how['beamwV']
         except:
-            #beamwidth
-            beamwH = global_how['beamwidth']
-            beamwV = beamwH
+            try:
+                #old variable format
+                beamwH = global_how['beamwidth']
+                beamwV = beamwH
+            except:
+                #catching missing beamwidth by using beamwidth in the sites file
+                beamwH = config_dict['beamwidth'][site_idx]
+                beamwV = beamwH
     freq_dict = {'comments': 'Rapic Frequency',
                  'meta_group': 'instrument_parameters',
                  'long_name': 'Tx Frequency',
