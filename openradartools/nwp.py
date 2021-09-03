@@ -157,11 +157,13 @@ def nwp_profile(radar, source='era5'):
     #map temp and z to radar gates
     z_field, temp_field = pyart.retrieve.map_profile_to_gates(temp_profile, geopot_profile, radar) #geopot and temp profile with respect to MSL
     temp_info_field = {'data': temp_field['data'],  # Switch to celsius.
-                      'long_name': 'Sounding temperature at gate',
-                      'standard_name': 'temperature',
+                      'long_name': f'dry bulb temperature',
                       'valid_min': -100, 'valid_max': 100,
                       'units': 'degrees Celsius',
-                      'comment': 'Radiosounding date: %s' % (request_dt.strftime("%Y/%m/%d"))}
+                      'description': f'derived using pressure level temperature and geopotential from {source}',
+                      'comment': 'model file timestamp: %s' % (request_dt.strftime("%Y%m%d_%H%M%S"))}
+    z_field['description'] = f'derived using pressure level temperature and geopotential from {source}'
+    z_field['comment'] = 'model file timestamp: %s' % (request_dt.strftime("%Y%m%d_%H%M%S"))
     
     #generate isom dataset
     melting_level = find_melting_level(temp_profile, geopot_profile)
@@ -173,8 +175,8 @@ def nwp_profile(radar, source='era5'):
     isom_data = (radar.altitude['data'] + z) - melting_level
     isom_data[isom_data<0] = 0
     isom_field = {'data': isom_data, # relative to melting level
-                      'long_name': 'Height relative to (H0+H10)/2 level',
-                      'standard_name': 'relative_melting_level_height',
+                      'long_name': 'Height relative to melting level',
+                      'description': 'melting level defined as (Height of 0C level + Height of 10C level)/2 as desribed by Wang et al. 2019 doi:10.1175/JHM-D-18-0071.1',
                       'units': 'm'}
     
     #interpolate to 0C and -20C levels

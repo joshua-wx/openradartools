@@ -42,7 +42,7 @@ def unravel_velocity(radar, gatefilter, vel_name="VEL", dbz_name="DBZ", nyquist=
     vel_meta = pyart.config.get_metadata("velocity")
     vel_meta["data"] = unfvel
     vel_meta["_FillValue"] = -9999
-    vel_meta["comment"] = "UNRAVEL algorithm."
+    vel_meta["comment"] = "Corrected using the UNRAVEL algorithm developed by Louf et al. (2020) doi:10.1175/jtech-d-19-0020.1 available at https://github.com/vlouf/dealias"
     vel_meta["long_name"] = "Doppler radial velocity of scatterers away from instrument"
     vel_meta["units"] = "m s-1"
 

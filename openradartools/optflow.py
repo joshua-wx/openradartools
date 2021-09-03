@@ -172,6 +172,4 @@ def advection(R,
         #apply nodata mask
         Rd[R[0] == nodata] = nodata
             
-        
-    
     return Rd

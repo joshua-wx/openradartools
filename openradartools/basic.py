@@ -4,6 +4,32 @@ import numpy as np
 
 import pyart
 
+def get_date_from_filename(filename, delimiter='_', date_fmt='%Y%m%d_%H%M%S'):
+    """
+    INPUT:
+    filename (str):
+        can contain path, has no impact on this function.
+        filename must use the convention IDDDD_DATE. delimiter + everything else 
+        DATE must have same format as date
+    OUTPUT:
+    radar_id (int)
+    """
+    if not isinstance(filename, str):
+        raise ValueError(f"get_id_from_filename: filename is not a string: {filename}")
+        return None
+    if delimiter not in filename:
+        raise ValueError(f"get_id_from_filename: Delimiter not found in filename: {filename}")
+        return None
+    fn = os.path.basename(filename)
+    fn_parts = fn.split(delimiter)
+    try:
+        dtstr = fn_parts[1] + '_' + fn_parts[2].split('.')[0]
+        dt = datetime.strptime(dtstr, date_fmt)
+        return dt
+    except:
+        raise ValueError(f"get_id_from_filename: Failed to extract radar if from: {filename}")
+        return None
+        
 def get_id_from_filename(filename, delimiter='_'):
     """
     INPUT:
@@ -13,10 +39,10 @@ def get_id_from_filename(filename, delimiter='_'):
     OUTPUT:
     radar_id (int)
     """
-    if not isinstance(test_string, str):
+    if not isinstance(filename, str):
         raise ValueError(f"get_id_from_filename: filename is not a string: {filename}")
         return None
-    if delimiter not in fn:
+    if delimiter not in filename:
         raise ValueError(f"get_id_from_filename: Delimiter not found in filename: {filename}")
         return None
     fn = os.path.basename(filename)
@@ -27,7 +53,6 @@ def get_id_from_filename(filename, delimiter='_'):
     except:
         raise ValueError(f"get_id_from_filename: Failed to extract radar if from: {filename}")
         return None
-        
 
 def chunks(l, n):
     """
