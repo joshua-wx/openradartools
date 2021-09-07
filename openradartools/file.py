@@ -149,7 +149,7 @@ def read_odim(odim_ffn, siteinfo_ffn=None):
     """
     #read metadata
     radar_id = ort.basic.get_id_from_filename(odim_ffn, delimiter='_')
-    dt = datetime.strptime(os.path.basename(odim_ffn)[3:18],'%Y%m%d_%H%M%S')
+    dt = ort.basic.get_date_from_filename(odim_ffn, delimiter='_', date_fmt='%Y%m%d_%H%M%S')
     
     #read sites
     if siteinfo_ffn is None:
