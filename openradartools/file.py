@@ -10,6 +10,8 @@ import pandas
 import pyart
 import numpy as np
 
+import openradartools as ort
+
 def get_wavelength(h5_ffn):
     hfile = h5py.File(h5_ffn, 'r')
     global_how = hfile['how'].attrs
@@ -146,7 +148,7 @@ def read_odim(odim_ffn, siteinfo_ffn=None):
             
     """
     #read metadata
-    radar_id = int(os.path.basename(odim_ffn)[:2])
+    radar_id = ort.basic.get_id_from_filename(odim_ffn, delimiter='_')
     dt = datetime.strptime(os.path.basename(odim_ffn)[3:18],'%Y%m%d_%H%M%S')
     
     #read sites

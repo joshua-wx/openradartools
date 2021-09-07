@@ -52,7 +52,7 @@ def apply_gpmmatch_calibration(radar, radar_dt, cal_dict, in_dbz_name, out_dbz_n
     radar.add_field_like(in_dbz_name, out_dbz_name, refl_cal_data)
     radar.fields[out_dbz_name]['calibration_offset'] = dbzh_offset
     radar.fields[out_dbz_name]['calibration_units'] = 'dBZ'
-    radar.fields[out_zdr_name]['calibration_description'] = 'Technique implemented by Louf et al. (2019) doi:10.1175/JTECH-D-18-0007.1'
+    radar.fields[out_dbz_name]['calibration_description'] = 'Technique implemented using satellite matching described in Louf et al. (2019) doi:10.1175/JTECH-D-18-0007.1'
     if len(error_msg) == 0:
         radar.fields[out_dbz_name]['calibration_comment'] = 'GR_cal = GR - cal_offset'
     else:
