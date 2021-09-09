@@ -226,8 +226,8 @@ def phidp_bringi(radar, gatefilter, phidp_field="PHI_UNF", refl_field='DBZ'):
     kdpb: ndarray
         Bringi specific differential phase array.
     """
-    dz = radar.fields[refl_field]['data'].copy().filled(-9999).astype(np.float)
-    dp = radar.fields[phidp_field]['data'].copy().filled(-9999).astype(np.float)
+    dz = radar.fields[refl_field]['data'].copy().filled(-9999).astype(float)
+    dp = radar.fields[phidp_field]['data'].copy().filled(-9999).astype(float)
 
     # Extract dimensions
     rng = radar.range['data']
@@ -236,7 +236,7 @@ def phidp_bringi(radar, gatefilter, phidp_field="PHI_UNF", refl_field='DBZ'):
     [R, A] = np.meshgrid(rng, azi)
 
     # Compute KDP bringi.
-    kdpb, phidpb, _ = csu_kdp.calc_kdp_bringi(dp, dz, R.astype(np.float) / 1e3, gs=float(dgate), bad=-9999, thsd=12.0, window=6.0, std_gate=11)
+    kdpb, phidpb, _ = csu_kdp.calc_kdp_bringi(dp, dz, R.astype(float) / 1e3, gs=float(dgate), bad=-9999, thsd=12.0, window=6.0, std_gate=11)
 
     # Mask array
     phidpb = np.ma.masked_where(phidpb == -9999, phidpb)

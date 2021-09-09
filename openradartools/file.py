@@ -133,7 +133,7 @@ def get_field_names():
                     ('SNRH', 'signal_to_noise_ratio')]
     return fields_names
 
-def read_odim(odim_ffn, siteinfo_ffn=None):
+def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999):
     """
     Reads odimh5 volume using pyart and replaces fieldnames as required
 
@@ -168,7 +168,11 @@ def read_odim(odim_ffn, siteinfo_ffn=None):
             radar.add_field(new_key, radar.fields.pop(old_key), replace_existing=True)
         except KeyError:
             continue
-            
+    
+    # fix invalid data in fields (mask and replace data with fill_value)
+    for field in radar.fields.keys():
+        radar.fields[field]['data'] = np.ma.fix_invalid(radar.fields[field]['data'], fill_value=fill_value)
+    
     #insert meta data if missing
     with h5py.File(odim_ffn, 'r') as hfile:
         global_how = hfile['how'].attrs
