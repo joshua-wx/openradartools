@@ -15,7 +15,7 @@ def open_dem(dem_fn='australia_250m_dem.tif', invalid_terrain=-9999):
     return (rastervalues, rastercoords, proj)
 
 #from wradlab
-def beam_blocking(radar, radar_id, radar_dt, srtm_ffn, output_root, force=False):
+def beam_blocking(radar, srtm_ffn, bb_ffn, force=False):
     """
     Apply the wradlib beam blocking library for the target volume.
 
@@ -33,13 +33,6 @@ def beam_blocking(radar, radar_id, radar_dt, srtm_ffn, output_root, force=False)
         every pixel in the radar object.
 
     """
-    #init
-    bb_path = f'{output_root}/{radar_id:02}/{radar_dt.strftime("%Y%m%d")}'
-    bb_ffn = f'{bb_path}/{radar_id:02}_{radar_dt.strftime("%Y%m%d")}_bb.npz'
-    #create paths
-    if not os.path.exists(bb_path):
-        os.makedirs(bb_path)
-        
     #check if BB already calculated
     if os.path.exists(bb_ffn) and force == False:
         print('BB file exists, skipping processing:', bb_ffn)
