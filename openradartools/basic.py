@@ -5,6 +5,19 @@ import numpy as np
 
 import pyart
 
+def round_minute(dt):
+    
+    """
+    WHAT: For a given Python datetime (dt),
+    this function round the seconds value to the nearest minute,
+    and removes seconds and milliseconds
+    """
+    dt_minute = dt.minute
+    dt_second = dt.second
+    if dt_second > 30:
+        dt = dt + timedelta(minutes=1)
+    return datetime(dt.year, dt.month, dt.day, dt.hour, dt.minute, 0)
+
 def get_date_from_filename(filename, delimiter='_', date_fmt='%Y%m%d_%H%M%S'):
     """
     INPUT:
