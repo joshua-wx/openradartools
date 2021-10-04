@@ -5,7 +5,7 @@ import numpy as np
 
 import pyart
 
-def round_minute(dt):
+def round_to_nearest_minute(dt):
     
     """
     WHAT: For a given Python datetime (dt),
