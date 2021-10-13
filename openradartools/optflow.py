@@ -154,7 +154,7 @@ def advection(R,
     x, y = np.meshgrid(
         np.arange(Rd.shape[1], dtype=float), np.arange(Rd.shape[0], dtype=float)
     )
-    for i in range(T_start, T_end + t, t):
+    for i in np.arange(T_start, T_end + t, t):
         #shift timestep 1 forwards (this is the older timestep)
         pos1 = (y - i / T * V[1], x - i / T * V[0])
         R1 = map_coordinates(R[0], pos1, order=1)
