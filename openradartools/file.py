@@ -84,10 +84,10 @@ def pack_zip(zip_fn, zip_path,  ffn_list):
     os.system(cmd)
     return None
 
-def get_dt_list(vol_ffn_list):
+def get_dt_list(vol_ffn_list, delimiter='_', date_fmt='%Y%m%d_%H%M%S', date_str_len=15):
     dt_list = []
     for vol_ffn in vol_ffn_list:
-        dt_list.append(ort.basic.get_date_from_filename(vol_ffn))
+        dt_list.append(ort.basic.get_date_from_filename(vol_ffn, delimiter=delimiter, date_fmt=date_fmt, date_str_len=date_str_len))
     return dt_list
 
 def findin_sitelist(config_dict, radar_id, radar_dt):    

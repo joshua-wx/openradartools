@@ -18,13 +18,19 @@ def round_to_nearest_minute(dt):
         dt = dt + timedelta(minutes=1)
     return datetime(dt.year, dt.month, dt.day, dt.hour, dt.minute, 0)
 
-def get_date_from_filename(filename, delimiter='_', date_fmt='%Y%m%d_%H%M%S'):
+def get_date_from_filename(filename, delimiter='_', date_fmt='%Y%m%d_%H%M%S', date_str_len=15):
     """
     INPUT:
     filename (str):
         can contain path, has no impact on this function.
         filename must use the convention IDDDD_DATE. delimiter + everything else 
         DATE must have same format as date
+    delimiter (str):
+        Delimiter that separates radar ID and Date
+    date_fmt (str):
+        datetime formatter for the datestring
+    date_str_len (int):
+        number of characters used in the datestring
     OUTPUT:
     radar_id (int)
     """
@@ -37,7 +43,7 @@ def get_date_from_filename(filename, delimiter='_', date_fmt='%Y%m%d_%H%M%S'):
     fn = os.path.basename(filename)
     fn_parts = fn.split(delimiter)
     try:
-        dtstr = fn_parts[1] + '_' + fn_parts[2].split('.')[0]
+        dtstr = delimiter.join(fn_parts[1:])[:date_str_len] #join remaining file parts back into a string, and extract the next date_str_len characters
         dt = datetime.strptime(dtstr, date_fmt)
         return dt
     except:

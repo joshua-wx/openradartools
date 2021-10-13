@@ -73,12 +73,15 @@ def constant_advection(R, **kwargs):
 #     return Rd
 
 #from pysteps
-def advection_nowcast(R, V, t=1, T=5, T_end=30, mode='max', round_R=False):
+def advection_nowcast(R, V, t=1, T=5, 
+                      T_start=0, T_end=30,
+                      mode='max', round_R=False):
     """
     R = np.ma.array of qpe_current
     V = np.ma.array of optical flow vectors [x,y]
     T = time between two observations (5 min)
-    end_T = end time for nowcast
+    T_start = start time for nowcast
+        T_end = end time for nowcast
     t = interpolation timestep (1 min)
     """
     
@@ -92,7 +95,11 @@ def advection_nowcast(R, V, t=1, T=5, T_end=30, mode='max', round_R=False):
     if round_R:
         Rsmooth = np.round(Rsmooth)
     
-    for i in np.arange(t, (T_end/T) + t, t):
+    # use the interpolation timestep (t) as the T_start if required
+    if T_start < t:
+        T_start = t
+        
+    for i in np.arange(T_start, (T_end/T) + t, t):
         
         #dilated_R = dilation(dilated_R, selem=np.ones((3,3)))
         
