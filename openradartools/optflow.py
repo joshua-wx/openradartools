@@ -72,52 +72,6 @@ def constant_advection(R, **kwargs):
 #             print('unknown mode')
 #     return Rd
 
-#from pysteps
-def advection_nowcast(R, V, t=1, T=5, 
-                      T_start=0, T_end=30,
-                      mode='max', round_R=False):
-    """
-    R = np.ma.array of qpe_current
-    V = np.ma.array of optical flow vectors [x,y]
-    T = time between two observations (5 min)
-    T_start = start time for nowcast
-        T_end = end time for nowcast
-    t = interpolation timestep (1 min)
-    """
-    
-    # Perform temporal interpolation
-    Rd = np.zeros((R.shape))
-    x, y = np.meshgrid(
-        np.arange(R.shape[1], dtype=float), np.arange(R.shape[0], dtype=float),
-    )
-    #smooth R
-    Rsmooth = gaussian(R, sigma=1)
-    if round_R:
-        Rsmooth = np.round(Rsmooth)
-    
-    # use the interpolation timestep (t) as the T_start if required
-    if T_start < t:
-        T_start = t
-        
-    for i in np.arange(T_start, (T_end/T) + t, t):
-        
-        #dilated_R = dilation(dilated_R, selem=np.ones((3,3)))
-        
-        ts_forward = -i
-        y_shift = y + (ts_forward * V[1])
-        x_shift = x + (ts_forward * V[0])
-        pos = (y_shift, x_shift)
-        R_new = map_coordinates(Rsmooth, pos, order=1)
-        if mode == 'max':
-            #take the maximum when accumulating the swath
-            Rd = np.max(np.stack((Rd, R_new), axis=2), axis=2)
-        elif mode == 'sum':
-            #take the sum when accumulating the swath
-            Rd = np.sum(np.stack((Rd, R_new), axis=2), axis=2)
-        else:
-            print('unknown mode')
-            
-    return Rd
 
 
 def advection(R,

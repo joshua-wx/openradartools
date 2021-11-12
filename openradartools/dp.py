@@ -363,11 +363,10 @@ def csu_hca(radar, gatefilter, kdp_name, zdr_name, band, refl_name='DBZ_CORR',
         use_temperature = False
 
     if use_temperature:
-        scores = csu_fhc.csu_fhc_summer(dz=refl, zdr=zdr, rho=rhohv, kdp=kdp, use_temp=True, band=band, T=radar_T)
+        hydro = csu_fhc.csu_fhc_summer(dz=refl, zdr=zdr, rho=rhohv, kdp=kdp, use_temp=True, band=band, T=radar_T)
     else:
-        scores = csu_fhc.csu_fhc_summer(dz=refl, zdr=zdr, rho=rhohv, kdp=kdp, use_temp=False, band=band)
+        hydro = csu_fhc.csu_fhc_summer(dz=refl, zdr=zdr, rho=rhohv, kdp=kdp, use_temp=False, band=band)
 
-    hydro = np.argmax(scores, axis=0) + 1
     hydro[gatefilter.gate_excluded] = 0
     hydro_data = np.ma.masked_equal(hydro.astype(np.short), 0)
 
