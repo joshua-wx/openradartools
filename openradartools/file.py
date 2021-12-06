@@ -159,7 +159,11 @@ def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999):
     site_idx = findin_sitelist(config_dict, radar_id, dt)
         
     #read radar object
-    radar = pyart.aux_io.read_odim_h5(odim_ffn, file_field_names=True)
+    radar_unsorted = pyart.aux_io.read_odim_h5(odim_ffn, file_field_names=True)
+    #sort radar object sweeps into ascending order
+    sweep_sort_idx = np.argsort(radar_unsorted.fixed_angle['data'])
+    radar = radar_unsorted.extract_sweeps(sweep_sort_idx)
+    
     #get field names
     fields_names = get_field_names()
     # Parse array old_key, new_key
