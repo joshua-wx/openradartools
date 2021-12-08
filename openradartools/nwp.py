@@ -68,16 +68,13 @@ def nwp_profile(radar, source='era5'):
     request_lon = radar.longitude['data'][0]
     request_alt = radar.altitude['data'][0]
     request_dt = pd.Timestamp(cftime.num2pydate(radar.time['data'][0], radar.time['units']))
-        
     if source == 'access':
         if request_dt < datetime.strptime('20200924', '%Y%m%d'):
             #APS2
             access_root = '/g/data/lb4/ops_aps2/access-g/1' #access g
-            flip = False
         else:
             #APS3
             access_root = '/g/data/wr45/ops_aps3/access-g/1' #access g
-            flip = True
         #build folder for access data
         model_timestep_hr = 6
         hour_folder = str(round(request_dt.hour/model_timestep_hr)*model_timestep_hr).zfill(2) + '00'
@@ -90,7 +87,7 @@ def nwp_profile(radar, source='era5'):
         geop_pl_ffn = access_folder + '/pl/geop_ht.nc'
         rh_pl_ffn   = access_folder + '/pl/relhum.nc'
         sfc_pres_ffn = access_folder + '/sfc/sfc_pres.nc'
-        
+                
         #check if files exist
         ort.file.check_file_exists(temp_pl_ffn)
         ort.file.check_file_exists(geop_pl_ffn)
@@ -109,7 +106,6 @@ def nwp_profile(radar, source='era5'):
             sfc_pres = sfc_pres_ds.sfc_pres.sel(lon=request_lon, method='nearest').sel(lat=request_lat, method='nearest').data[0]/100 #units: Pa       
 
     elif source == "era5":
-        flip = True
         #set era path
         era5_pl_root = '/g/data/rt52/era5/pressure-levels/reanalysis'
         era5_sl_root = '/g/data/rt52/era5/single-levels/reanalysis'
@@ -141,7 +137,7 @@ def nwp_profile(radar, source='era5'):
     rh_profile     = rh_profile[valid_mask]
     
     #flipdata (ground is first row)
-    if flip:
+    if geopot_profile[0]>geopot_profile[-1]:
         temp_profile = np.flipud(temp_profile)
         geopot_profile = np.flipud(geopot_profile)   
         pres_profile = np.flipud(pres_profile)   
