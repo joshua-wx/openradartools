@@ -12,11 +12,11 @@ def round_to_nearest_minute(dt):
     this function round the seconds value to the nearest minute,
     and removes seconds and milliseconds
     """
-    dt_minute = dt.minute
-    dt_second = dt.second
-    if dt_second > 30:
-        dt = dt + timedelta(minutes=1)
-    return datetime(dt.year, dt.month, dt.day, dt.hour, dt.minute, 0)
+    dtsecond = (dt-datetime(1970, 1, 1)).total_seconds()
+    dtsecond_r = 60 * round(dtsecond / 60)
+    dt = datetime.fromtimestamp(dtsecond_r)
+    
+    return dt
 
 def get_date_from_filename(filename, delimiter='_', date_fmt='%Y%m%d_%H%M%S', date_str_len=15):
     """

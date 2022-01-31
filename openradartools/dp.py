@@ -206,7 +206,7 @@ def correct_attenuation_zphi(
     #return fields
     return atten_meta, atten_diff_meta
 
-def phidp_bringi(radar, gatefilter, phidp_field="PHI_UNF", refl_field='DBZ'):
+def phidp_bringi(radar, gatefilter, phidp_field="PHI_UNF", refl_field='DBZ', bad=-9999.0):
     """
     Compute PHIDP and KDP Bringi.
     Parameters
@@ -226,9 +226,12 @@ def phidp_bringi(radar, gatefilter, phidp_field="PHI_UNF", refl_field='DBZ'):
     kdpb: ndarray
         Bringi specific differential phase array.
     """
-    dz = radar.fields[refl_field]['data'].copy().filled(-9999).astype(float)
-    dp = radar.fields[phidp_field]['data'].copy().filled(-9999).astype(float)
-
+    dz = radar.fields[refl_field]['data'].copy().filled(bad)
+    dp = radar.fields[phidp_field]['data'].copy().filled(bad)
+    #ensure any NaN have been replaced with the bad value
+    dz[np.isnan(dz)] = bad
+    dp[np.isnan(dp)] = bad
+    
     # Extract dimensions
     rng = radar.range['data']
     azi = radar.azimuth['data']
@@ -236,18 +239,18 @@ def phidp_bringi(radar, gatefilter, phidp_field="PHI_UNF", refl_field='DBZ'):
     [R, A] = np.meshgrid(rng, azi)
 
     # Compute KDP bringi.
-    kdpb, phidpb, _ = csu_kdp.calc_kdp_bringi(dp, dz, R.astype(float) / 1e3, gs=float(dgate), bad=-9999, thsd=12.0, window=6.0, std_gate=11)
+    kdpb, phidpb, _ = csu_kdp.calc_kdp_bringi(dp, dz, R.astype(float) / 1e3, gs=float(dgate), bad=bad, thsd=12.0, window=6.0, std_gate=11)
 
     # Mask array
-    phidpb = np.ma.masked_where(phidpb == -9999, phidpb)
-    kdpb = np.ma.masked_where(kdpb == -9999, kdpb)
+    phidpb = np.ma.masked_where(phidpb == bad, phidpb)
+    kdpb = np.ma.masked_where(kdpb == bad, kdpb)
     
     #fill
     phidpb = fill_phi(phidpb.filled(np.NaN))
     
     #set fill values
-    np.ma.set_fill_value(phidpb, -9999)
-    np.ma.set_fill_value(kdpb, -9999)
+    np.ma.set_fill_value(phidpb, bad)
+    np.ma.set_fill_value(kdpb, bad)
     
     # Get metadata.
     phimeta = pyart.config.get_metadata("differential_phase")
