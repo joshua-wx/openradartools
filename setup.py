@@ -36,6 +36,6 @@ setup(
     ],
     keywords="radar weather meteorology correction",
     packages=find_packages(exclude=["examples", "sample_data", "tests"]),
-    install_requires=["numpy", "arm_pyart", "h5py", "scipy", "numba", "pandas", "xarray", "cftime", "h5py", "scipy", "csu_radartools"],
+    install_requires=["numpy", "arm_pyart", "h5py", "scipy", "numba", "pandas", "xarray", "cftime", "h5py", "scipy", "csu_radartools", "scikit-image", "unravel", "leroi"],
     project_urls={"Source": "https://github.com/joshua-wx/openradartools/",},
 )
