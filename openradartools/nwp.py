@@ -10,7 +10,6 @@ import pandas as pd
 from scipy.interpolate import interp1d
 
 import openradartools as ort
-from pyhail import common
 
 def nwp_mesh_levels(request_dt, request_lat, request_lon):
     
@@ -183,9 +182,9 @@ def nwp_profile(radar, source='era5',
     minus_20_level = np.round(sounding_interp(temp_profile, geopot_profile, -20))
 
     #interpolate to wbt 0C and wbt -20C levels
-    wbt_profile = common.wbt(temp_profile, rh_profile)
-    wbt_minus25C = np.round(common.sounding_interp(wbt_profile, geopot_profile, -25))
-    wbt_0C = np.round(common.sounding_interp(wbt_profile, geopot_profile, 0))
+    wbt_profile = wbt(temp_profile, rh_profile)
+    wbt_minus25C = np.round(sounding_interp(wbt_profile, geopot_profile, -25))
+    wbt_0C = np.round(sounding_interp(wbt_profile, geopot_profile, 0))
 
     # store levels in level dictionary
     levels_dict = {'fz_level':fz_level, 'minus_20_level':minus_20_level,
@@ -194,7 +193,7 @@ def nwp_profile(radar, source='era5',
     #insert original profiles into a dictionary
     profile_dict = {'t':temp_profile, 'z':geopot_profile, 'r':rh_profile, 'p':pres_profile}
 
-    return  z_field, temp_info_field, isom_field, profile_dict, levels_dict
+    return z_field, temp_info_field, isom_field, profile_dict, levels_dict
 
 def sounding_interp(snd_temp, snd_z, target_temp):
     """
@@ -247,3 +246,30 @@ def find_melting_level(temp_profile, geop_profile):
     fz_h = sounding_interp(temp_profile, geop_profile, 0.)
     #calculate base of melting level
     return (plus10_h+fz_h)/2
+
+def wbt(temp, rh):
+    """
+    Calculate wet bulb temperature from temperature and relative humidity.
+
+    Parameters
+    ----------
+    temp : ndarray
+        Temperature data (degrees C).
+    rh : ndarray
+        Relative humidity data (%).
+
+    Returns
+    -------
+    wb_temp : ndarray
+        Wet bulb temperature (degrees C).
+
+    """
+    wb_temp = (
+        temp * np.arctan(0.151977 * (rh + 8.313659) ** 0.5)
+        + np.arctan(temp + rh)
+        - np.arctan(rh - 1.676331)
+        + 0.00391838 * (rh ** 1.5) * np.arctan(0.023101 * rh)
+        - 4.686035
+    )
+    return wb_temp
+
