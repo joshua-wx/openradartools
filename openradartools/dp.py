@@ -84,14 +84,17 @@ def apply_zdr_calibration(radar, radar_dt, cal_dict, in_zdr_name, out_zdr_name):
     radar.add_field_like(in_zdr_name, out_zdr_name, zdr_cal_data)
     radar.fields[out_zdr_name]['calibration_offset'] = zdr_offset
     radar.fields[out_zdr_name]['calibration_units'] = 'dB'
-    radar.fields[out_zdr_name]['calibration_description'] = 'Technique implemented using birdbath calibration described in Louf et al. (2019) doi:10.1175/JTECH-D-18-0007.1'
+    radar.fields[out_zdr_name]['calibration_description'] = 'Technique implemented using birdbath calibration ' \
+                                                            'described in Louf et al. (2019) ' \
+                                                            'doi:10.1175/JTECH-D-18-0007.1'
     if len(error_msg) == 0:
         radar.fields[out_zdr_name]['calibration_comment'] = 'Calibration derived from birdbath scan'
     else:
         radar.fields[out_zdr_name]['calibration_comment'] = error_msg
     return radar
 
-def do_gatefilter(radar, gf=None, refl_name='DBZ', phidp_name="PHIDP", rhohv_name='RHOHV_CORR', zdr_name="ZDR", despeckle_field=False):
+def do_gatefilter(radar, gf=None, refl_name='DBZ', phidp_name="PHIDP", rhohv_name='RHOHV_CORR', zdr_name="ZDR",
+                  despeckle_field=False):
     """
     Basic filtering function for dual-polarisation data.
 
@@ -187,7 +190,9 @@ def correct_attenuation_zphi(
     #build field
     atten_meta = pyart.config.get_metadata("path_integrated_attenuation")
     atten_meta["data"] = atten.astype(np.float32)
-    atten_meta["description"] =  f'Correction for Z using Z-PHI technique developed by Ryzhkov et al. (2014) doi:10.1175/JTECH-D-13-00038.1; implemented by ARM PyART calculate_attenuation_zphi function'
+    atten_meta["description"] =  f'Correction for Z using Z-PHI technique developed by Ryzhkov et al. (2014) ' \
+                                 f'doi:10.1175/JTECH-D-13-00038.1; implemented by ARM PyART ' \
+                                 f'calculate_attenuation_zphi function'
     atten_meta["_FillValue"] = -9999
     
     #ZDR
@@ -201,7 +206,9 @@ def correct_attenuation_zphi(
     #build field
     atten_diff_meta = pyart.config.get_metadata("path_integrateddifferential_attenuation")
     atten_diff_meta["data"] = atten_diff.astype(np.float32)   
-    atten_diff_meta["description"] =  f'Correction for ZDR using Z-PHI technique developed by Ryzhkov et al. (2014) doi:10.1175/JTECH-D-13-00038.1; implemented by ARM PyART calculate_attenuation_zphi function'
+    atten_diff_meta["description"] =  f'Correction for ZDR using Z-PHI technique developed by Ryzhkov et al. ' \
+                                      f'(2014) doi:10.1175/JTECH-D-13-00038.1; implemented by ARM PyART ' \
+                                      f'calculate_attenuation_zphi function'
     atten_diff_meta["_FillValue"] = -9999
     #return fields
     return atten_meta, atten_diff_meta
@@ -239,7 +246,8 @@ def phidp_bringi(radar, gatefilter, phidp_field="PHI_UNF", refl_field='DBZ', bad
     [R, A] = np.meshgrid(rng, azi)
 
     # Compute KDP bringi.
-    kdpb, phidpb, _ = csu_kdp.calc_kdp_bringi(dp, dz, R.astype(float) / 1e3, gs=float(dgate), bad=bad, thsd=12.0, window=6.0, std_gate=11)
+    kdpb, phidpb, _ = csu_kdp.calc_kdp_bringi(dp, dz, R.astype(float) / 1e3, gs=float(dgate), bad=bad, thsd=12.0,
+                                              window=6.0, std_gate=11)
 
     # Mask array
     phidpb = np.ma.masked_where(phidpb == bad, phidpb)
@@ -255,10 +263,12 @@ def phidp_bringi(radar, gatefilter, phidp_field="PHI_UNF", refl_field='DBZ', bad
     # Get metadata.
     phimeta = pyart.config.get_metadata("differential_phase")
     phimeta['data'] = phidpb
-    phimeta['comments'] = "Corrected using technique developed by Lang et al. (2007) doi: 10.1175/JCLI4082.1; implementation from https://github.com/CSU-Radarmet/CSU_RadarTools"
+    phimeta['comments'] = "Corrected using technique developed by Lang et al. (2007) doi: 10.1175/JCLI4082.1; " \
+                          "implementation from https://github.com/CSU-Radarmet/CSU_RadarTools"
     kdpmeta = pyart.config.get_metadata("specific_differential_phase")
     kdpmeta['data'] = kdpb
-    kdpmeta['comments'] = "Corrected using technique developed by Lang et al. (2007) doi: 10.1175/JCLI4082.1; implementation from https://github.com/CSU-Radarmet/CSU_RadarTools"
+    kdpmeta['comments'] = "Corrected using technique developed by Lang et al. (2007) doi: 10.1175/JCLI4082.1; " \
+                          "implementation from https://github.com/CSU-Radarmet/CSU_RadarTools"
     return phimeta, kdpmeta
 
 @jit
@@ -317,8 +327,10 @@ def insert_ncar_pid(radar, odim_ffn, refl_name='reflectivity'):
                    "10: Dry_Snow; 11: Wet_Snow; 12: Ice_Crystals; 13: Irreg_Ice_Crystals; " +\
                    "14: Supercooled_Liquid_Droplets; 15: Flying_Insects; 16: Second_Trip; 17: Ground_Clutter; " +\
                    "18: misc1; 19: misc2"
-    pid_meta = {'data': pid_volume, 'units': 'NA', 'long_name': 'NCAR Hydrometeor classification', '_FillValue': np.int16(0),
-                'description:': 'NCAR Hydrometeor classification developed by Vivekanandan et al. (1999) doi:10.1175/1520-0477(1999)080<0381:CMRUSB>2.0.CO;2',
+    pid_meta = {'data': pid_volume, 'units': 'NA', 'long_name': 'NCAR Hydrometeor classification',
+                '_FillValue': np.int16(0),
+                'description': 'NCAR Hydrometeor classification developed by Vivekanandan et al. (1999) '
+                               'doi:10.1175/1520-0477(1999)080<0381:CMRUSB>2.0.CO;2',
                 'comments': the_comments}
 
     return pid_meta
@@ -376,8 +388,11 @@ def csu_hca(radar, gatefilter, kdp_name, zdr_name, band, refl_name='DBZ_CORR',
     the_comments = "1: Drizzle; 2: Rain; 3: Ice Crystals; 4: Aggregates; " +\
                    "5: Wet Snow; 6: Vertical Ice; 7: LD Graupel; 8: HD Graupel; 9: Hail; 10: Big Drops"
 
-    hydro_meta = {'data': hydro_data, 'units': ' ', 'long_name': 'CSU Hydrometeor classification', '_FillValue': np.short(0),
-                  'description': 'CSU Hydrometeor classification developed by Thompson et al. (2014) doi:10.1175/JTECH-D-13-00119.1 ; implementation from https://github.com/CSU-Radarmet/CSU_RadarTools',
+    hydro_meta = {'data': hydro_data, 'units': ' ', 'long_name': 'CSU Hydrometeor classification',
+                  '_FillValue': np.short(0),
+                  'description': 'CSU Hydrometeor classification developed by Thompson et al. (2014) '
+                                 'doi:10.1175/JTECH-D-13-00119.1 ; implementation from '
+                                 'https://github.com/CSU-Radarmet/CSU_RadarTools',
                   'comments': the_comments}
 
     return hydro_meta
