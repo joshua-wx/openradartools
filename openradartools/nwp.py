@@ -10,6 +10,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 
 import openradartools as ort
+from pyhail import common
 
 def nwp_mesh_levels(request_dt, request_lat, request_lon):
     
@@ -42,7 +43,12 @@ def nwp_mesh_levels(request_dt, request_lat, request_lon):
     return [fz_level, minus_20_level]
 
 
-def nwp_profile(radar, source='era5'):
+def nwp_profile(radar, source='era5',
+                access_root_aps2='/g/data/lb4/ops_aps2/access-g/1',
+                access_root_aps3='/g/data/wr45/ops_aps3/access-g/1',
+                era5_pl_root='/g/data/rt52/era5/pressure-levels/reanalysis',
+                era5_sl_root = '/g/data/rt52/era5/single-levels/reanalysis',
+                ):
     """
     Compute the signal-to-noise ratio as well as interpolating the radiosounding
     temperature on to the radar grid. The function looks for the radiosoundings
@@ -71,10 +77,10 @@ def nwp_profile(radar, source='era5'):
     if source == 'access':
         if request_dt < datetime.strptime('20200924', '%Y%m%d'):
             #APS2
-            access_root = '/g/data/lb4/ops_aps2/access-g/1' #access g
+            access_root = access_root_aps2 #access g
         else:
             #APS3
-            access_root = '/g/data/wr45/ops_aps3/access-g/1' #access g
+            access_root = access_root_aps3 #access g
         #build folder for access data
         model_timestep_hr = 6
         hour_folder = str(round(request_dt.hour/model_timestep_hr)*model_timestep_hr).zfill(2) + '00'
@@ -106,10 +112,7 @@ def nwp_profile(radar, source='era5'):
             sfc_pres = sfc_pres_ds.sfc_pres.sel(lon=request_lon, method='nearest').sel(lat=request_lat, method='nearest').data[0]/100 #units: Pa       
 
     elif source == "era5":
-        #set era path
-        era5_pl_root = '/g/data/rt52/era5/pressure-levels/reanalysis'
-        era5_sl_root = '/g/data/rt52/era5/single-levels/reanalysis'
-        
+
         #build file paths
         month_str = str(request_dt.month).zfill(2)
         year_str = str(request_dt.year)
@@ -178,12 +181,19 @@ def nwp_profile(radar, source='era5'):
     #interpolate to 0C and -20C levels
     fz_level = np.round(sounding_interp(temp_profile, geopot_profile, 0))
     minus_20_level = np.round(sounding_interp(temp_profile, geopot_profile, -20))
-    levels_dict = {'fz_level':fz_level, 'minus_20_level':minus_20_level}
+
+    #interpolate to wbt 0C and wbt -20C levels
+    wbt_profile = common.wbt(temp_profile, rh_profile)
+    wbt_minus25C = np.round(common.sounding_interp(wbt_profile, geopot_profile, -25))
+    wbt_0C = np.round(common.sounding_interp(wbt_profile, geopot_profile, 0))
+
+    # store levels in level dictionary
+    levels_dict = {'fz_level':fz_level, 'minus_20_level':minus_20_level,
+                   'wbt_minus_25_level':wbt_minus25C, 'wbt_0_level':wbt_0C}
     
     #insert original profiles into a dictionary
     profile_dict = {'t':temp_profile, 'z':geopot_profile, 'r':rh_profile, 'p':pres_profile}
-    
-    
+
     return  z_field, temp_info_field, isom_field, profile_dict, levels_dict
 
 def sounding_interp(snd_temp, snd_z, target_temp):
