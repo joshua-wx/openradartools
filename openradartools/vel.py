@@ -30,7 +30,6 @@ def unravel_velocity(radar, gatefilter, vel_name="VEL", dbz_name="DBZ", nyquist=
         radar, vel_name, dbz_name,
         gatefilter=gatefilter,
         nyquist_velocity=nyquist,
-        do_3d=False
     )
     #build mask
     invalid_mask = np.logical_or(np.isnan(unfvel), gatefilter.gate_excluded)
