@@ -44,6 +44,30 @@ def adjust_csuhca_scheme_colorbar_for_pyart(cb):
     cb.ax.tick_params(length=0)
     return cb
 
+def adjust_csuhca_scheme_colorbar_for_pyart(cb):
+    """
+    Generate colorbar for the hydrometeor classification.
+    """
+    cb.set_ticks(np.linspace(0.5, 9.5, 10))
+    cb.ax.set_yticklabels(
+        [
+            "None",
+            "Driz",
+            "Rain",
+            "IceCry",
+            "IceAgg",
+            "WetSnow",
+            "Graupel",
+            "HailSml",
+            "HailLrg",
+            "HailGnt",
+        ]
+    )
+    cb.ax.set_ylabel("")
+    cb.ax.tick_params(length=0)
+    return cb
+
+
 def csu_color_map():
 
     color_list = [
@@ -60,6 +84,22 @@ def csu_color_map():
         "Red", #Big Dp
         ]
     
+    return colors.ListedColormap(color_list)
+
+def csu_hsda_color_map():
+    color_list = [
+        "White",  # None
+        "LightBlue",  # Driz
+        "SteelBlue",  # Rain
+        "MediumBlue",  # IceCry
+        "Plum",  # IceAgg
+        "MediumPurple",  # WetSnow
+        "Green",  # Graupel
+        "YellowGreen",  # HailSmall
+        "Gold",  # HailLarge
+        "Red",  # HailGiant
+    ]
+
     return colors.ListedColormap(color_list)
 
 def ncar_color_map():
