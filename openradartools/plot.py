@@ -44,7 +44,7 @@ def adjust_csuhca_scheme_colorbar_for_pyart(cb):
     cb.ax.tick_params(length=0)
     return cb
 
-def adjust_csuhca_scheme_colorbar_for_pyart(cb):
+def adjust_csuhsda_scheme_colorbar_for_pyart(cb):
     """
     Generate colorbar for the hydrometeor classification.
     """
