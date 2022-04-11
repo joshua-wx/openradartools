@@ -48,7 +48,7 @@ def beam_blocking(radar, srtm_ffn, bb_ffn=None):
     try:
         bw = radar.instrument_parameters['radar_beam_width_h']['data']
     except:
-        print('beamwidth info missing form volume, using default of 1deg')
+        print('beamwidth info missing from volume, using default of 1deg')
         bw = 1
 
     # grid arrays

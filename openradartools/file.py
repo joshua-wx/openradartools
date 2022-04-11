@@ -133,14 +133,25 @@ def get_field_names():
                     ('SNRH', 'signal_to_noise_ratio')]
     return fields_names
 
-def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999):
+def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999, file_object_bytes=None):
     """
     Reads odimh5 volume using pyart and replaces fieldnames as required
 
     Parameters:
     ===========
         odim_ffn: str
-            Full filename to radar volume file 
+            Full filename to radar volume file
+        siteinfo_ffn: str, optional
+            Full filename of radar site list. If none is given the default
+            location in Gadi will be used:
+            /g/data/rq0/level_1/odim_pvol/radar_site_list.csv
+        fill_value: int
+            value to be used to fill non-valid data
+        file_object_bytes : file object, optional
+            object with the bytes of the in-memory ODIM_H5 file. This replaces
+            the variable filename and is passed to pyart.aux_io.read_odim_h5.
+            Useful when the file is already in memory, i.e. if read from a
+            compressed file or from a website.
             
     Returns:
     ========
@@ -157,9 +168,14 @@ def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999):
         siteinfo_ffn = '/g/data/rq0/level_1/odim_pvol/radar_site_list.csv'
     config_dict = read_csv(siteinfo_ffn, 0)
     site_idx = findin_sitelist(config_dict, radar_id, dt)
-        
+
+    # replace filename by the file's content if these are already loaded in memory
+    if file_object_bytes is not None:
+        odim_ffn = file_object_bytes
+
     #read radar object
     radar_unsorted = pyart.aux_io.read_odim_h5(odim_ffn, file_field_names=True)
+
     #sort radar object sweeps into ascending order
     sweep_sort_idx = np.argsort(radar_unsorted.fixed_angle['data'])
     radar = radar_unsorted.extract_sweeps(sweep_sort_idx)
@@ -176,7 +192,7 @@ def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999):
     # fix invalid data in fields (mask and replace data with fill_value)
     for field in radar.fields.keys():
         radar.fields[field]['data'] = np.ma.fix_invalid(radar.fields[field]['data'], fill_value=fill_value)
-    
+
     #insert meta data if missing
     with h5py.File(odim_ffn, 'r') as hfile:
         global_how = hfile['how'].attrs
@@ -229,6 +245,51 @@ def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999):
     #return radar object
     return radar
 
+def zip_file_list_all_items_inside(zip_filename):
+    """
+    Lists all the contents' names inside a zip file
+
+    Parameters:
+    ===========
+        zip_filename: str
+            Full filename to zip file
+
+    Returns:
+    ========
+        item_names: list
+            a sorted list of all item names inside the zip file.
+    """
+
+    zip_archive = zipfile.ZipFile(zip_filename)
+    zip_file_list_full = list(zip_archive.filelist)
+    zip_archive.close()
+    item_names = []
+    for item_ in zip_file_list_full:
+        item_names.append(item_.filename)
+    return sorted(item_names)
+
+def extract_item_from_zip_to_memory(zip_filename, item_name):
+    """
+    Extracts the bytes of an item from inside a zip file
+
+    Parameters:
+    ===========
+        zip_filename: str
+            Full filename to zip file
+
+        item_name: str
+            name of the item to be extracted
+
+    Returns:
+    ========
+        item_bytes_str: str
+            bytes of the extracted item
+
+    """
+    zip_archive = zipfile.ZipFile(zip_filename)
+    item_bytes_str = zip_archive.read(item_name)
+    zip_archive.close()
+    return item_bytes_str
 
 def read_csv(csv_ffn, header_line):
     """
