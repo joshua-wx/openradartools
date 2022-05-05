@@ -17,7 +17,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="openradartools",
-    version="1.0.0",
+    version="1.1.0",
     description="Correction .",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -36,6 +36,6 @@ setup(
     ],
     keywords="radar weather meteorology correction",
     packages=find_packages(exclude=["examples", "sample_data", "tests"]),
-    install_requires=["numpy", "arm_pyart", "h5py", "scipy", "numba", "pandas", "xarray", "cftime", "h5py", "scipy", "csu_radartools", "scikit-image", "unravel", "leroi"],
+    install_requires=["numpy", "arm_pyart", "h5py", "scipy", "numba", "pandas", "xarray", "cftime", "h5py", "scipy", "csu_radartools", "scikit-image", "unravel", "leroi", "netCDF4", "wradlib"],
     project_urls={"Source": "https://github.com/joshua-wx/openradartools/",},
 )

@@ -1,5 +1,5 @@
 import os
-
+import netCDF4 as nc
 import numpy as np
 import wradlib as wrl
 
@@ -11,7 +11,7 @@ def open_dem(dem_fn='australia_250m_dem.tif', invalid_terrain=-9999):
     rasterfile = wrl.util.get_wradlib_data_file(dem_fn)
     ds = wrl.io.open_raster(rasterfile)
     rastervalues, rastercoords, proj = wrl.georef.extract_raster_dataset(ds, nodata=invalid_terrain)
-    
+
     return (rastervalues, rastercoords, proj)
 
 #from wradlab
@@ -24,7 +24,8 @@ def beam_blocking(radar, srtm_ffn, bb_ffn=None):
     radar : Radar
         Py-ART radar object.
     srtm_ffn : string
-        Full path to SRTM geotiff file.
+        Full path to SRTM geotiff file or netCDF4 file. If netCDF4, then the file
+        must have a 1D "lat" variable, 1D "lon" variable, and a 2D "topog" variable
     bb_ffn : string
         full path to output npz file for CBB field. Use None to skip saving to file.
     Returns
@@ -55,10 +56,6 @@ def beam_blocking(radar, srtm_ffn, bb_ffn=None):
     r = np.arange(nbins) * range_res
     beamradius = wrl.util.half_power_radius(r, bw)
 
-    # read geotiff
-    ds = wrl.io.open_raster(srtm_ffn)
-    rastervalues, rastercoords, proj = wrl.georef.extract_raster_dataset(ds, nodata=-32768)
-
     #build coordiantes
     coord = None
     for el in el_list:
@@ -80,11 +77,35 @@ def beam_blocking(radar, srtm_ffn, bb_ffn=None):
     #polar coodinates for mapping terrain (no altitude)
     polcoords = coords[..., :2]
 
-    # Clip the region inside our bounding box
-    rlimits = (lon.min(), lat.min(), lon.max(), lat.max())
-    ind = wrl.util.find_bbox_indices(rastercoords, rlimits)
-    rastercoords_clip = rastercoords.copy()[ind[1]:ind[3], ind[0]:ind[2], ...]
-    rastervalues_clip = rastervalues.copy()[ind[1]:ind[3], ind[0]:ind[2]]
+
+    # read geotiff
+    try:
+        geo_file = nc.Dataset(srtm_ffn)
+        geo_lat = geo_file.variables['lat'][:].copy()
+        geo_lon = geo_file.variables['lon'][:].copy()
+
+        row_s = (np.argmin(np.abs(geo_lat - lat.min()), axis=None), np.argmin(np.abs(geo_lat - lat.max()), axis=None))
+        row_1 = np.min(row_s)
+        row_2 = np.max(row_s)
+
+        col_s = (np.argmin(np.abs(geo_lon - lon.min()), axis=None), np.argmin(np.abs(geo_lon - lon.max()), axis=None))
+        col_1 = np.min(col_s)
+        col_2 = np.max(col_s)
+
+        rastercoords_clip = np.dstack(np.meshgrid(geo_lon[col_1:col_2], geo_lat[row_1:row_2]))
+        rastervalues_clip = geo_file.variables['topog'][row_1:row_2, col_1:col_2].copy()
+        geo_file.close()
+
+    except:
+        ds = wrl.io.open_raster(srtm_ffn)
+        rastervalues, rastercoords, proj = wrl.georef.extract_raster_dataset(ds, nodata=-32768)
+
+        # Clip the region inside our bounding box
+        rlimits = (lon.min(), lat.min(), lon.max(), lat.max())
+        ind = wrl.util.find_bbox_indices(rastercoords, rlimits)
+        rastercoords_clip = rastercoords.copy()[ind[1]:ind[3], ind[0]:ind[2], ...]
+        rastervalues_clip = rastervalues.copy()[ind[1]:ind[3], ind[0]:ind[2]]
+
 
     # Map rastervalues to polar grid points
     polarvalues = wrl.ipol.cart_to_irregular_interp(rastercoords_clip, rastervalues_clip,
@@ -110,7 +131,7 @@ def beam_blocking(radar, srtm_ffn, bb_ffn=None):
     return cbb_dict
 
 def build_masks(vol_ffn, dem_info, bw_peaks=3.0, invalid_terrain = -9999, terrain_offset = 2000):
-    
+
     #build radar info
     radar = pyart.aux_io.read_odim_h5(vol_ffn)
     sitecoords = (radar.longitude['data'][0], radar.latitude['data'][0], radar.altitude['data'][0])
@@ -118,7 +139,7 @@ def build_masks(vol_ffn, dem_info, bw_peaks=3.0, invalid_terrain = -9999, terrai
     nbins = radar.ngates # number of range bins
     el_list = radar.fixed_angle['data'] # vertical antenna pointing angle (deg)
     range_res = radar.range['data'][2] - radar.range['data'][1]# range resolution (meters)
-    
+
     #unpack DEM
     rastervalues, rastercoords, proj = dem_info
 
@@ -151,7 +172,7 @@ def build_masks(vol_ffn, dem_info, bw_peaks=3.0, invalid_terrain = -9999, terrai
     # Map rastervalues to polar grid points
     polarvalues = wrl.ipol.cart_to_irregular_interp(rastercoords_clip, rastervalues_clip,
                                                  polcoords, method='nearest')
-    
+
     #calculate sea mask using invalid terrain value
     sea_mask = polarvalues == invalid_terrain
 
@@ -161,5 +182,5 @@ def build_masks(vol_ffn, dem_info, bw_peaks=3.0, invalid_terrain = -9999, terrai
     beamradius = wrl.util.half_power_radius(r, bw_peaks)
     beam_bottom = alt - beamradius
     clutter_mask = beam_bottom <= (polarvalues + terrain_offset)
-    
+
     return sea_mask, clutter_mask
