@@ -92,6 +92,8 @@ def get_dt_list(vol_ffn_list, delimiter='_', date_fmt='%Y%m%d_%H%M%S', date_str_
 
 def findin_sitelist(config_dict, radar_id, radar_dt):    
        
+    dict_idx = None
+    
     id_list  = config_dict['id']
     dts_list = config_dict['postchange_start']
     #replace empty values with 1900
