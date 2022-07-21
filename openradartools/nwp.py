@@ -43,10 +43,12 @@ def nwp_mesh_levels(request_dt, request_lat, request_lon):
 
 
 def nwp_profile(radar, source='era5',
+                radar_id=None,
                 access_root_aps2='/g/data/lb4/ops_aps2/access-g/1',
                 access_root_aps3='/g/data/wr45/ops_aps3/access-g/1',
                 era5_pl_root='/g/data/rt52/era5/pressure-levels/reanalysis',
                 era5_sl_root = '/g/data/rt52/era5/single-levels/reanalysis',
+                era5_profile_root = '/g/data/rq0/admin/era5_site_profiles',
                 ):
     """
     Compute the signal-to-noise ratio as well as interpolating the radiosounding
@@ -110,8 +112,22 @@ def nwp_profile(radar, source='era5',
         with xr.open_dataset(sfc_pres_ffn) as sfc_pres_ds:
             sfc_pres = sfc_pres_ds.sfc_pres.sel(lon=request_lon, method='nearest').sel(lat=request_lat, method='nearest').data[0]/100 #units: Pa       
 
+        
+    elif source == "era5_radarsite":
+        if radar_id is None:
+            raise Exception('missing radar_id value for era5_profiles')
+        #build file paths
+        profile_ffn = f'{era5_profile_root}/{radar_id}/{radar_id}_era5_profiles_{request_dt.strftime("%Y%m")}.nc'
+        ort.file.check_file_exists(profile_ffn)
+        #load data
+        with xr.open_dataset(profile_ffn) as ds:
+            temp_profile = ds.t.sel(time=request_dt, method='nearest').data[:]
+            geopot_profile = ds.z.sel(time=request_dt, method='nearest').data[:]
+            pres_profile = ds.level.data[:] #hPa
+            rh_profile = ds.r.sel(time=request_dt, method='nearest').data[:] #%
+            sfc_pres = ds.sp.sel(time=request_dt, method='nearest').data #hPa
+            
     elif source == "era5":
-
         #build file paths
         month_str = str(request_dt.month).zfill(2)
         year_str = str(request_dt.year)
@@ -119,7 +135,7 @@ def nwp_profile(radar, source='era5',
         geop_ffn = glob(f'{era5_pl_root}/z/{year_str}/z_era5_oper_pl_{year_str}{month_str}*.nc')[0]
         rh_ffn   = glob(f'{era5_pl_root}/r/{year_str}/r_era5_oper_pl_{year_str}{month_str}*.nc')[0]
         sp_ffn   = glob(f'{era5_sl_root}/sp/{year_str}/sp_era5_oper_sfc_{year_str}{month_str}*.nc')[0]
-        
+
         #extract data
         with xr.open_dataset(temp_ffn) as temp_ds:
             temp_profile = temp_ds.t.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:] - 273.15 #units: deg K -> C
