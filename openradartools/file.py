@@ -105,12 +105,12 @@ def findin_sitelist(config_dict, radar_id, radar_dt):
     #check for id matches
     match_idx = [i for i, j in enumerate(id_list) if j == radar_id]
     #check for multiple matches
-    if len(match_idx) == 1:
+    if len(match_idx) == 1 and radar_dt >= dt_list[match_idx[0]]:
         dict_idx = match_idx[0]
     else:
         #check list of matches, updates if start_date remains less than odim_date
         for idx in match_idx:
-            if radar_dt > dt_list[idx]:
+            if radar_dt >= dt_list[idx]:
                 dict_idx = idx
                 
     return dict_idx
