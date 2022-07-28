@@ -11,26 +11,23 @@ from scipy.interpolate import interp1d
 
 import openradartools as ort
 
-def nwp_mesh_levels(request_dt, request_lat, request_lon):
+def nwp_mesh_levels(request_dt, radar_id):
     
     """
     minimal version of nwp profiles designed for only mesh levels
     """
     
     #set era path
-    era5_root = '/g/data/rt52/era5/pressure-levels/reanalysis'
-    
+    era5_root = '/g/data/rq0/admin/era5_site_profiles'
     #build file paths
-    month_str = request_dt.month
-    year_str = request_dt.year
-    temp_ffn = glob(f'{era5_root}/t/{year_str}/t_era5_oper_pl_{year_str}{month_str:02}*.nc')[0]
-    geop_ffn = glob(f'{era5_root}/z/{year_str}/z_era5_oper_pl_{year_str}{month_str:02}*.nc')[0]
+    profile_ffn = f'{era5_profile_root}/{radar_id}/{radar_id}_era5_profiles_{request_dt.strftime("%Y%m")}.nc'
+    ort.file.check_file_exists(profile_ffn)
     
     #extract data
-    with xr.open_dataset(temp_ffn) as temp_ds:
-        temp_data = temp_ds.t.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:] - 273.15 #units: deg K -> C
-    with xr.open_dataset(geop_ffn) as geop_ds:
-        geop_data = geop_ds.z.sel(longitude=request_lon, method='nearest').sel(latitude=request_lat, method='nearest').sel(time=request_dt, method='nearest').data[:]/9.80665 #units: m**2 s**-2 -> m
+    with xr.open_dataset(profile_ffn) as ds:
+        temp_data = ds.t.sel(time=request_dt, method='nearest').data[:]
+        geop_data = ds.z.sel(time=request_dt, method='nearest').data[:]
+        
     #flipdata (ground is first row)
     temp_data = np.flipud(temp_data)
     geop_data = np.flipud(geop_data)
