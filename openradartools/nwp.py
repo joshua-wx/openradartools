@@ -20,7 +20,7 @@ def nwp_mesh_levels(request_dt, radar_id):
     #set era path
     era5_root = '/g/data/rq0/admin/era5_site_profiles'
     #build file paths
-    profile_ffn = f'{era5_profile_root}/{radar_id}/{radar_id}_era5_profiles_{request_dt.strftime("%Y%m")}.nc'
+    profile_ffn = f'{era5_root}/{radar_id}/{radar_id}_era5_profiles_{request_dt.strftime("%Y%m")}.nc'
     ort.file.check_file_exists(profile_ffn)
     
     #extract data
