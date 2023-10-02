@@ -163,14 +163,6 @@ def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999, file_object_bytes=N
     #read metadata
     radar_id = ort.basic.get_id_from_filename(odim_ffn, delimiter='_')
     dt = ort.basic.get_date_from_filename(odim_ffn, delimiter='_', date_fmt='%Y%m%d_%H%M%S')
-    
-    #compile list of datasets which are birdbath scans and exclude from the pyart load. This will avoid problems in the pipeline with loading the volume and interpolation.
-    bb_dataset_list = []
-    with h5py.File(odim_ffn, "r") as hfile:
-        dataset_list = [k for k in hfile if k.startswith("dataset")]
-        for dataset in dataset_list:
-            if hfile[dataset]["where"].attrs["elangle"] == 90:
-                bb_dataset_list.append(dataset)
 
     #read sites
     if siteinfo_ffn is None:
@@ -182,6 +174,14 @@ def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999, file_object_bytes=N
     # replace filename by the file's content if these are already loaded in memory
     if file_object_bytes is not None:
         odim_ffn = file_object_bytes
+
+    #compile list of datasets which are birdbath scans and exclude from the pyart load. This will avoid problems in the pipeline with loading the volume and interpolation.
+    bb_dataset_list = []
+    with h5py.File(odim_ffn, "r") as hfile:
+        dataset_list = [k for k in hfile if k.startswith("dataset")]
+        for dataset in dataset_list:
+            if hfile[dataset]["where"].attrs["elangle"] == 90:
+                bb_dataset_list.append(dataset)
 
     #read radar object
     radar_unsorted = pyart.aux_io.read_odim_h5(odim_ffn, file_field_names=True, exclude_datasets=bb_dataset_list)
