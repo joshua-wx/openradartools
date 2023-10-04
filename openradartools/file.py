@@ -135,7 +135,7 @@ def get_field_names():
                     ('SNRH', 'signal_to_noise_ratio')]
     return fields_names
 
-def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999, file_object_bytes=None):
+def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999, file_object_bytes=None, remove_birdbath=True):
     """
     Reads odimh5 volume using pyart and replaces fieldnames as required
 
@@ -154,6 +154,8 @@ def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999, file_object_bytes=N
             the variable filename and is passed to pyart.aux_io.read_odim_h5.
             Useful when the file is already in memory, i.e. if read from a
             compressed file or from a website.
+        remove_birdbath: logical
+            Flag to remove birdbath scans when loading volume
             
     Returns:
     ========
@@ -177,11 +179,12 @@ def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999, file_object_bytes=N
 
     #compile list of datasets which are birdbath scans and exclude from the pyart load. This will avoid problems in the pipeline with loading the volume and interpolation.
     bb_dataset_list = []
-    with h5py.File(odim_ffn, "r") as hfile:
-        dataset_list = [k for k in hfile if k.startswith("dataset")]
-        for dataset in dataset_list:
-            if hfile[dataset]["where"].attrs["elangle"] == 90:
-                bb_dataset_list.append(dataset)
+    if remove_birdbath:
+        with h5py.File(odim_ffn, "r") as hfile:
+            dataset_list = [k for k in hfile if k.startswith("dataset")]
+            for dataset in dataset_list:
+                if hfile[dataset]["where"].attrs["elangle"] == 90:
+                    bb_dataset_list.append(dataset)
 
     #read radar object
     radar_unsorted = pyart.aux_io.read_odim_h5(odim_ffn, file_field_names=True, exclude_datasets=bb_dataset_list)

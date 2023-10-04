@@ -287,7 +287,7 @@ def fill_phi(phi):
                 
     return phi
 
-def insert_ncar_pid(radar, odim_ffn, refl_name='reflectivity'):
+def insert_ncar_pid(radar, odim_ffn, refl_name='reflectivity', remove_birdbath=True):
 
     """
     extracts the NCAR PID from BOM ODIMH5 files into a CFRADIAL-type format and returns
@@ -309,6 +309,8 @@ def insert_ncar_pid(radar, odim_ffn, refl_name='reflectivity'):
         #collate padded sweeps into a volume
         for i in range(n_keys):
             ds_name = 'dataset' + str(i+1)
+            if f[ds_name]["where"].attrs["elangle"] == 90 and remove_birdbath:
+                continue
             pid_sweep = np.array(f[ds_name]['quality1']['data'])
             shape = pid_sweep.shape
             padded_pid_sweep = np.zeros(sweep_shape)
