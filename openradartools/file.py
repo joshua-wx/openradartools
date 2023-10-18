@@ -3,6 +3,7 @@ import glob
 import zipfile
 import tempfile
 from datetime import datetime
+import warnings
 
 #Other libs
 import h5py
@@ -212,7 +213,7 @@ def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999, file_object_bytes=N
         try:
             frequency = global_how['rapic_FREQUENCY']
         except:
-            print('ort.file.read_odim: file does not contain frequency, using default for band')
+            #warnings.warn('ort.file.read_odim: file does not contain frequency, using default for band')
             band = config_dict['band'][site_idx]
             if band == 'C':
                 frequency = 5625 #C band MHz
