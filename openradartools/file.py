@@ -91,7 +91,7 @@ def get_dt_list(vol_ffn_list, delimiter='_', date_fmt='%Y%m%d_%H%M%S', date_str_
         dt_list.append(ort.basic.get_date_from_filename(vol_ffn, delimiter=delimiter, date_fmt=date_fmt, date_str_len=date_str_len))
     return dt_list
 
-def findin_sitelist(config_dict, radar_id, radar_dt):    
+def findin_sitelist(config_dict, radar_id, radar_dt, fallback_to_earliest=True):    
        
     dict_idx = None
     
@@ -113,6 +113,11 @@ def findin_sitelist(config_dict, radar_id, radar_dt):
         for idx in match_idx:
             if radar_dt >= dt_list[idx]:
                 dict_idx = idx
+        #fall back if dict_idx is still none
+        if dict_idx is None and fallback_to_earliest:
+            warnings.warn(f'no site entry found for radar {radar_id} at {radar_dt}, defaulting to {dt_list[dict_idx]}')
+            dict_idx = match_idx[0]
+
                 
     return dict_idx
 
