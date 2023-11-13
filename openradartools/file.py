@@ -105,6 +105,9 @@ def findin_sitelist(config_dict, radar_id, radar_dt, fallback_to_earliest=True):
     dt_list  = [datetime.strptime(date, '%d/%m/%Y') for date in dts_list] #note '/' replaced with '_' by csv_read
     #check for id matches
     match_idx = [i for i, j in enumerate(id_list) if j == radar_id]
+    #abort if no matches
+    if len(match_idx) == 0:
+        return None
     #check for multiple matches
     if len(match_idx) == 1 and radar_dt >= dt_list[match_idx[0]]:
         dict_idx = match_idx[0]
@@ -115,8 +118,9 @@ def findin_sitelist(config_dict, radar_id, radar_dt, fallback_to_earliest=True):
                 dict_idx = idx
         #fall back if dict_idx is still none
         if dict_idx is None and fallback_to_earliest:
-            warnings.warn(f'no site entry found for radar {radar_id} at {radar_dt}, defaulting to {dt_list[dict_idx]}')
             dict_idx = match_idx[0]
+            warnings.warn(f'no site entry found for radar {radar_id} at {radar_dt}, defaulting to {dt_list[dict_idx]}')
+            
 
                 
     return dict_idx
