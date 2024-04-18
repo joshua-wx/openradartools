@@ -220,16 +220,20 @@ def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999, file_object_bytes=N
     with h5py.File(odim_ffn, 'r') as hfile:
         global_how = hfile['how'].attrs
         try:
+            #pre 2023 implementation
             frequency = global_how['rapic_FREQUENCY']
         except:
-            #warnings.warn('ort.file.read_odim: file does not contain frequency, using default for band')
-            band = config_dict['band'][site_idx]
-            if band == 'C':
-                frequency = 5625 #C band MHz
-            elif band == 'S':
-                frequency = 2860 #S band MHz
-            else:
-                frequency = -9999 #unknown           
+            try:
+                #post 2023 implementation
+                frequency = 299792458/(global_how['wavelength']/100) #convert cm to m, and convert wavelength to frequency by dividing c by wavelength
+            except:
+                syslog.syslog(syslog.LOG_WARNING, f'ort.file.read_odim: file does not contain frequency, using default for band for {odim_ffn}')
+                if band == 'C':
+                    frequency = 5625 #C band MHz
+                elif band == 'S':
+                    frequency = 2860 #S band MHz
+                else:
+                    frequency = -9999 #unknown           
         try:
             #H and V beamwidth from file
             beamwH = global_how['beamwH']

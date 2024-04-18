@@ -14,7 +14,7 @@ def round_to_nearest_minute(dt):
     """
     dtsecond = (dt-datetime(1970, 1, 1)).total_seconds()
     dtsecond_r = 60 * round(dtsecond / 60)
-    dt = datetime.fromtimestamp(dtsecond_r)
+    dt = datetime.utcfromtimestamp(dtsecond_r)
     
     return dt
 
