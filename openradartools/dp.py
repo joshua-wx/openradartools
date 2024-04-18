@@ -8,11 +8,17 @@ import pandas as pd
 import xarray as xr
 import cftime
 import h5py
+import leroi
 
 from scipy import integrate
 from scipy.integrate import cumtrapz
 
 from csu_radartools import csu_kdp, csu_fhc
+
+def clean_phidp_leroi(radar, rhohv_field, phidp_field, min_field = 0, min_area = 50):
+    #use leroi to filter data
+    radar = leroi.mask_invalid_data(radar, rhohv_field, add_to = [phidp_field], min_field = min_field, min_area = min_area, return_smooth = False)
+    return radar
 
 def det_sys_phase_gf(radar, gatefilter, phidp_field=None, first_gate=30, sweep=0):
     """
