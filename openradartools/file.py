@@ -14,9 +14,33 @@ import numpy as np
 import openradartools as ort
 
 def get_wavelength(h5_ffn):
-    hfile = h5py.File(h5_ffn, 'r')
-    global_how = hfile['how'].attrs
-    return global_how['wavelength']
+    with h5py.File(h5_ffn, 'r') as hfile:
+        global_how = hfile['how'].attrs
+        wavelength = global_how['wavelength']
+    return wavelength
+
+def get_s3car_from_odimh5(h5_ffn):
+    cal_dict = {'z_calibration':0, 'zdr_calibration':0, 'az_error':0, 'el_error':0}
+    with h5py.File(h5_ffn, 'r') as hfile:
+        global_how = hfile['how'].attrs
+        try:
+            cal_dict['z_calibration'] = global_how['monitoring_calibration']
+        except:
+            pass
+        try:
+            cal_dict['zdr_calibration'] = 0
+        except:
+            pass
+        try:
+            cal_dict['monitoring_az_error'] = global_how['monitoring_az_error']
+        except:
+            pass
+        try:
+            cal_dict['monitoring_el_error'] = global_how['monitoring_el_error']
+        except:
+            pass        
+    return cal_dict
+
 
 def check_file_exists(ffn):
     if not os.path.isfile(ffn):
