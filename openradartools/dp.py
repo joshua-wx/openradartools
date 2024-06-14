@@ -73,10 +73,13 @@ def apply_zdr_calibration_v2(radar, radar_dt, cal_df, in_zdr_name, out_zdr_name)
     error_msg = ''
     zdr_offset = 0
     if cal_df:
-        zdr_offset = float(cal_df.loc[cal_df['date'] == radar_dt.strftime('%Y-%m-%d')]['zdr'].values[0])                 
+        match_df = cal_df.loc[cal_df['date'] == radar_dt.strftime('%Y-%m-%d')]
+        if len(match_df) == 0:
+            error_msg = 'no cal value for date found'
+        else:
+            zdr_offset = float(match_df['zdr'].values[0])
     else:
         error_msg = 'no cal file found'
-        zdr_offset = 0
     
     #apply calibration
     zdr_cal_data     = radar.fields[in_zdr_name]['data'].copy() - zdr_offset
