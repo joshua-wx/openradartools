@@ -5,7 +5,7 @@ import pyart
 
 import leroi
 import wradlib as wrl
-import wradlib.clutter as clutter
+import wradlib.classify as classify
 os.environ["WRADLIB_DATA"] = "/g/data1a/kl02/jss548/GIS_data"
 
 def _filter_hardcoding(my_array, nuke_filter, bad=-9999):
@@ -104,7 +104,7 @@ def clean_sp(radar, tilt_list, in_dbz_name, out_dbz_name):
         #extract ppi
         ppi            = refl_data[sweep_startidx[k]:sweep_endidx[k]+1]
         #generate clutter mask for ppi
-        clmap = clutter.filter_gabella(ppi,
+        clmap = classify.filter_gabella(ppi,
                                        wsize=5,
                                        thrsnorain=rain_cut_dbz,
                                        tr1=10.,
