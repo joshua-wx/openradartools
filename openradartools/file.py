@@ -161,7 +161,8 @@ def get_field_names():
     fields_names = [('TH', 'total_power'),
                     ('DBZH', 'reflectivity'),
                     ('ZDR', 'differential_reflectivity'),
-                    ('PHIDP', 'differential_phase'),
+                    ('PHIDP', 'differential_phase_1'),
+                    ('PHIDP2', 'differential_phase_2'),
                     ('KDP', 'specific_differential_phase'),
                     ('RHOHV', 'cross_correlation_ratio'),
                     ('VRADH', 'velocity'),
@@ -235,6 +236,12 @@ def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999, file_object_bytes=N
             radar.add_field(new_key, radar.fields.pop(old_key), replace_existing=True)
         except KeyError:
             continue
+
+    #priortise phidp2 over phidp1. This is because phidp2 is higher quality
+    if 'differential_phase_2' in radar.fields.keys():
+        radar.add_field('differential_phase', radar.fields.pop('differential_phase_2'), replace_existing=True)
+    elif 'differential_phase_1' in radar.fields.keys():
+        radar.add_field('differential_phase', radar.fields.pop('differential_phase_1'), replace_existing=True)
     
     # fix invalid data in fields (mask and replace data with fill_value)
     for field in radar.fields.keys():
