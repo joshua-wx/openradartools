@@ -12,7 +12,7 @@ import h5py
 import leroi
 
 from scipy import integrate
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid
 
 from csu_radartools import csu_kdp, csu_fhc
 
@@ -223,7 +223,7 @@ def correct_attenuation_zphi(
     #Z
     #calculate attenuation
     atten = np.ma.zeros((na, nr))
-    atten[:, :-1] = 2 * cumtrapz(spec_at, dx=dr)
+    atten[:, :-1] = 2 * cumulative_trapezoid(spec_at, dx=dr)
     #mask
     atten = np.ma.masked_invalid(atten)
     atten = np.ma.masked_where(gatefilter.gate_excluded, atten)
@@ -239,7 +239,7 @@ def correct_attenuation_zphi(
     #ZDR
     #calculate attenuation
     atten_diff = np.ma.zeros((na, nr))
-    atten_diff[:, :-1] = 2 * cumtrapz(spec_diff_at, dx=dr)
+    atten_diff[:, :-1] = 2 * cumulative_trapezoid(spec_diff_at, dx=dr)
     #mask
     atten_diff = np.ma.masked_invalid(atten_diff)
     atten_diff = np.ma.masked_where(gatefilter.gate_excluded, atten_diff)
