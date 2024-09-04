@@ -258,7 +258,7 @@ def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999, file_object_bytes=N
                 #post 2023 implementation
                 frequency = 299792458/(global_how['wavelength']/100) #convert cm to m, and convert wavelength to frequency by dividing c by wavelength
             except:
-                syslog.syslog(syslog.LOG_WARNING, f'ort.file.read_odim: file does not contain frequency, using default for band for {odim_ffn}')
+                print(f'ort.file.read_odim: file does not contain frequency, using default for band for {odim_ffn}')
                 if band == 'C':
                     frequency = 5625 #C band MHz
                 elif band == 'S':
