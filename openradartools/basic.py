@@ -210,7 +210,7 @@ def get_radar_z(radar):
     _, _, z = pyart.core.transforms.antenna_to_cartesian(rg_grid / 1000.0, az_grid, el_grid)
     # Check that z is not a MaskedArray
     if isinstance(z, np.ma.MaskedArray):
-        z = z.filled(np.NaN)
+        z = z.filled(np.nan)
     
     height_field = pyart.config.get_field_name('height')
     height_dict = pyart.config.get_metadata(height_field)

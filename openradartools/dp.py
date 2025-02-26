@@ -276,7 +276,7 @@ def phidp_bringi(radar, gatefilter, phidp_field="PHI_UNF", refl_field='DBZ', bad
     """
     dz = radar.fields[refl_field]['data'].copy().filled(bad)
     dp = radar.fields[phidp_field]['data'].copy().filled(bad)
-    #ensure any NaN have been replaced with the bad value
+    #ensure any nan have been replaced with the bad value
     dz[np.isnan(dz)] = bad
     dp[np.isnan(dp)] = bad
     
@@ -295,7 +295,7 @@ def phidp_bringi(radar, gatefilter, phidp_field="PHI_UNF", refl_field='DBZ', bad
     kdpb = np.ma.masked_where(kdpb == bad, kdpb)
     
     #fill
-    phidpb = fill_phi(phidpb.filled(np.NaN))
+    phidpb = fill_phi(phidpb.filled(np.nan))
     
     #set fill values
     np.ma.set_fill_value(phidpb, bad)
@@ -407,10 +407,10 @@ def csu_hca(radar, gatefilter, kdp_name, zdr_name, band, refl_name='DBZ_CORR',
     hydro_meta: dict
         Hydrometeor classification.
     """
-    refl = radar.fields[refl_name]['data'].copy().filled(np.NaN)
-    zdr = radar.fields[zdr_name]['data'].copy().filled(np.NaN)
+    refl = radar.fields[refl_name]['data'].copy().filled(np.nan)
+    zdr = radar.fields[zdr_name]['data'].copy().filled(np.nan)
     try:
-        kdp = radar.fields[kdp_name]['data'].copy().filled(np.NaN)
+        kdp = radar.fields[kdp_name]['data'].copy().filled(np.nan)
     except AttributeError:
         kdp = radar.fields[kdp_name]['data'].copy()
     rhohv = radar.fields[rhohv_name]['data']

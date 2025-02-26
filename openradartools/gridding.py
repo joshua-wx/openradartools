@@ -19,15 +19,15 @@ def KDtree_interp(fields, x_in, y_in, x_out, y_out, nnearest = 15, maxdist = Non
     y_out: ndarray of float with shape (n1a, n2a)
         x values of output coordinate space
     nnearest: int
-        maximum number of nearest neighbours to consider when filling NaN values
+        maximum number of nearest neighbours to consider when filling nan values
     maxdist: float (in units of Cartesian space)
-        maximum distance of nearest neighbours to consider when filling NaN values
+        maximum distance of nearest neighbours to consider when filling nan values
     p : float
         inverse distance power used in 1/dist**p
     method: string
         either nn for nearest neighbour or idw for inverse distance weighted interpolation
     remove_missing : bool
-        If True masks NaN values in the data values, defaults to False
+        If True masks nan values in the data values, defaults to False
     workers: int
         Number of threads to use for cKDTree.query. Must be less than NCPU. Use -1 for all threads.
         
@@ -78,7 +78,7 @@ def KDtree_interp(fields, x_in, y_in, x_out, y_out, nnearest = 15, maxdist = Non
             vals_out = vals_in[idx[:, 0]]
             dists_cp = dists[..., 0].copy()
 
-            # iteratively fill NaN with next neighbours
+            # iteratively fill nan with next neighbours
             isnan = np.isnan(vals_out)
             nanidx = np.argwhere(isnan)[..., 0]
             if nnearest > 1 & np.count_nonzero(isnan):
@@ -143,7 +143,7 @@ def grid_data(data, xradar, yradar, xgrid, ygrid, theta_3db=1.5, rmax=150e3, gat
     This function grid the polar data onto a Cartesian grid.
     This gridding technique is made to
     properly handle the absence of data while other
-    gridding techniques tend to propagate NaN values.
+    gridding techniques tend to propagate nan values.
     
     This function is slow than the KDtree implementation
     
@@ -176,7 +176,7 @@ def grid_data(data, xradar, yradar, xgrid, ygrid, theta_3db=1.5, rmax=150e3, gat
     if len(xgrid.shape) < len(xradar.shape):
         xgrid, ygrid = np.meshgrid(xgrid, ygrid)
 
-    data_out = np.zeros(xgrid.shape) + np.NaN
+    data_out = np.zeros(xgrid.shape) + np.nan
 
     for i in range(len(xgrid)):
         for j in range(len(ygrid)):
