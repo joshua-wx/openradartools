@@ -30,33 +30,18 @@ def _filter_hardcoding(my_array, nuke_filter, bad=-9999):
     to_return = np.ma.masked_where(filt_array == bad, filt_array)
     return to_return    
 
-def apply_gpmmatch_calibration(radar, radar_dt, cal_dict, in_dbz_name, out_dbz_name):
-    #find refl cal value
-    error_msg = ''
-    dbzh_offset = 0
-    if cal_dict:
-        caldt_mask  = np.logical_and(radar_dt.date()>=cal_dict['cal_start'], radar_dt.date()<=cal_dict['cal_end'])
-        dbzh_offset_match = cal_dict['cal_mean'][caldt_mask]
-        if len(dbzh_offset_match) == 0:
-            error_msg = 'time period not found in cal file'
-        elif len(dbzh_offset_match) > 1:
-            error_msg = 'multiple matches found in cal file'
-            print('calibration data error (multiple matches)')                
-        else:
-            dbzh_offset = np.float32(dbzh_offset_match)
-    else:
-        error_msg = 'no cal file found'
-    
+def apply_gpmmatch_calibration(radar, cal_dict, in_dbz_name, out_dbz_name):
+
     #apply calibration
-    refl_cal_data     = radar.fields[in_dbz_name]['data'].copy() - dbzh_offset #msgr is GR-SR
+    refl_cal_data     = radar.fields[in_dbz_name]['data'].copy() - cal_dict['dbzh_offset'] #msgr is GR-SR
     radar.add_field_like(in_dbz_name, out_dbz_name, refl_cal_data)
-    radar.fields[out_dbz_name]['calibration_offset'] = dbzh_offset
+    radar.fields[out_dbz_name]['calibration_offset'] = cal_dict['dbzh_offset'] 
     radar.fields[out_dbz_name]['calibration_units'] = 'dBZ'
     radar.fields[out_dbz_name]['calibration_description'] = 'Technique implemented using satellite matching described in Louf et al. (2019) doi:10.1175/JTECH-D-18-0007.1'
-    if len(error_msg) == 0:
+    if len(cal_dict['error_msg']) == 0:
         radar.fields[out_dbz_name]['calibration_comment'] = 'GR_cal = GR - cal_offset'
     else:
-        radar.fields[out_dbz_name]['calibration_comment'] = error_msg
+        radar.fields[out_dbz_name]['calibration_comment'] = cal_dict['error_msg']
     return radar
 
 def clean_sp_leroi(radar, dbz_fname, fields_to_mask, dbz_min = 0, area_min = 50):
