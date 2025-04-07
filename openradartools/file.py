@@ -20,7 +20,7 @@ def get_wavelength(h5_ffn):
     return wavelength
 
 def get_s3car_from_odimh5(h5_ffn):
-    cal_dict = {'z_calibration':0, 'zdr_calibration':0, 'az_error':0, 'el_error':0}
+    cal_dict = {'z_calibration':np.nan, 'zdr_calibration':np.nan, 'az_error':np.nan, 'el_error':np.nan}
     with h5py.File(h5_ffn, 'r') as hfile:
         global_how = hfile['how'].attrs
         try:
