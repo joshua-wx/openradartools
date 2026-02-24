@@ -11,7 +11,7 @@ from scipy.interpolate import interp1d
 
 import openradartools as ort
 
-def nwp_temperature_levels(request_dt, radar_id, t_levels=[0, -20]):
+def nwp_temperature_levels(request_dt, radar_id, t_levels=[0, -10, -20]):
     
     """
     Extracts temperature profiles from ERA5 for a given radar site and time, and interpolates to specified temperature levels.
@@ -36,6 +36,7 @@ def nwp_temperature_levels(request_dt, radar_id, t_levels=[0, -20]):
     output = []
     for level in t_levels:
         output.append(np.round(ort.nwp.sounding_interp(temp_data, geop_data, level)))
+    
     return output
 
 
