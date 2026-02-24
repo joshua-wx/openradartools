@@ -11,10 +11,10 @@ from scipy.interpolate import interp1d
 
 import openradartools as ort
 
-def nwp_mesh_levels(request_dt, radar_id):
+def nwp_temperature_levels(request_dt, radar_id, t_levels=[0, -20]):
     
     """
-    minimal version of nwp profiles designed for only mesh levels
+    Extracts temperature profiles from ERA5 for a given radar site and time, and interpolates to specified temperature levels.
     """
     
     #set era path
@@ -32,17 +32,19 @@ def nwp_mesh_levels(request_dt, radar_id):
     temp_data = np.flipud(temp_data)
     geop_data = np.flipud(geop_data)
     
-    #interpolate to 0C and -20C levels
-    fz_level = np.round(ort.nwp.sounding_interp(temp_data, geop_data, 0))
-    minus_20_level = np.round(ort.nwp.sounding_interp(temp_data, geop_data, -20))
-    
-    return [fz_level, minus_20_level]
+    #interpolate to levels
+    output = []
+    for level in t_levels:
+        output.append(np.round(ort.nwp.sounding_interp(temp_data, geop_data, level)))
+    return output
 
 
 def nwp_profile(radar, source='era5',
                 radar_id=None,
+                override_dt=None,
                 access_root_aps2='/g/data/lb4/ops_aps2/access-g/1',
                 access_root_aps3='/g/data/wr45/ops_aps3/access-g/1',
+                access_root_aps4='/g/data/wr45/ops_aps3/access-g/1',
                 era5_pl_root='/g/data/rt52/era5/pressure-levels/reanalysis',
                 era5_sl_root = '/g/data/rt52/era5/single-levels/reanalysis',
                 era5_profile_root = '/g/data/rq0/admin/era5_site_profiles',
@@ -71,7 +73,11 @@ def nwp_profile(radar, source='era5',
     request_lat = radar.latitude['data'][0]
     request_lon = radar.longitude['data'][0]
     request_alt = radar.altitude['data'][0]
-    request_dt = pd.Timestamp(cftime.num2pydate(radar.time['data'][0], radar.time['units']))
+    if override_dt is None:
+        request_dt = pd.Timestamp(cftime.num2pydate(radar.time['data'][0], radar.time['units']))
+    else:
+        print('Warning, using a different date for NWP data. Ensure this option is required')
+        request_dt = override_dt
     if source == 'access':
         if request_dt < datetime.strptime('20200924', '%Y%m%d'):
             #APS2
