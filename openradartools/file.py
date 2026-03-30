@@ -368,11 +368,15 @@ def read_csv(csv_ffn, header_line):
             csv columns are dictionary
     
     """
-    df = pandas.read_csv(csv_ffn, header=header_line)
+    try:
+        df = pandas.read_csv(csv_ffn, header=header_line)
+    except pd.errors.EmptyDataError:
+        print(f'{csv_ffn} is empty, returning empty dictionary')
+        return None
     as_dict = df.to_dict(orient='list')
     return as_dict
 
-def read_cal_file(cal_ffn, zdr_cal=False):
+def read_changedates_cal_file(cal_ffn, zdr_cal=False):
     """
     read Z or ZDR calibration csv file into dictionary
     
@@ -389,6 +393,8 @@ def read_cal_file(cal_ffn, zdr_cal=False):
     """
     #load calibration file
     dict_in = read_csv(cal_ffn, None)
+    if dict_in is None:
+        return None
     dict_out = {}
     #rename dictonary fields
     dict_out['cal_start'] = np.array([datetime.strptime(str(date), '%Y%m%d').date() for date in dict_in[0]])
@@ -397,5 +403,31 @@ def read_cal_file(cal_ffn, zdr_cal=False):
         dict_out['cal_mean']  = np.array(list(map(float, dict_in[3])))
     else:
         dict_out['cal_mean']  = np.array(list(map(float, dict_in[2])))
+    #return
+    return dict_out
+
+def read_daily_cal_file(cal_ffn, zdr_cal=False):
+    """
+    read Z or ZDR calibration csv file into dictionary
+    
+    Parameters:
+    ===========
+        cal_ffn: str
+            Full filename to csv file
+            
+    Returns:
+    ========
+        cal_dict: dict
+            calibration data as dictionary
+    
+    """
+    #load calibration file
+    dict_in = read_csv(cal_ffn, None)
+    if dict_in is None:
+        return None
+    dict_out = {}
+    #rename dictonary fields
+    dict_out['date'] = np.array([datetime.strptime(str(date), '%Y%m%d').date() for date in dict_in[0]])
+    dict_out['cal_mean']   = np.array(list(map(float, dict_in[1])))
     #return
     return dict_out
