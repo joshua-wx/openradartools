@@ -370,8 +370,14 @@ def read_csv(csv_ffn, header_line):
     """
     try:
         df = pandas.read_csv(csv_ffn, header=header_line)
-    except pd.errors.EmptyDataError:
-        print(f'{csv_ffn} is empty, returning empty dictionary')
+    except FileNotFoundError:
+        print(f'{csv_ffn} does not exist, returning None')
+        return None
+    except pandas.errors.EmptyDataError:
+        print(f'{csv_ffn} is empty, returning None')
+        return None
+    except pandas.errors.ParserError:
+        print(f'{csv_ffn} is malformed, returning None')
         return None
     as_dict = df.to_dict(orient='list')
     return as_dict
