@@ -103,7 +103,7 @@ def pack_zip(zip_fn, zip_path,  ffn_list):
     if os.path.isfile(zip_ffn):
         os.system('rm -f ' + zip_ffn)
     #build zip path
-    zip_cmd = 'zip -jq1'
+    zip_cmd = 'zip -jq6'
     files_to_zip = ' '.join(ffn_list)
     cmd = ' '.join([zip_cmd, zip_ffn, files_to_zip])
     os.system(cmd)
