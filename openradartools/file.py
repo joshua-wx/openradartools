@@ -1,5 +1,7 @@
 import os
 import glob
+import shutil
+import subprocess
 import zipfile
 import tempfile
 from datetime import datetime
@@ -14,31 +16,58 @@ import numpy as np
 import openradartools as ort
 
 def get_wavelength(h5_ffn):
+    """
+    Reads the radar wavelength from an ODIM HDF5 file.
+
+    Parameters:
+    ===========
+        h5_ffn: str
+            Full filename to ODIM HDF5 file
+
+    Returns:
+    ========
+        wavelength: float
+            Radar wavelength in cm, as stored in /how.wavelength
+    """
     with h5py.File(h5_ffn, 'r') as hfile:
         global_how = hfile['how'].attrs
         wavelength = global_how['wavelength']
     return wavelength
 
 def get_s3car_from_odimh5(h5_ffn):
+    """
+    Reads S3CAR calibration metadata from an ODIM HDF5 file.
+
+    Parameters:
+    ===========
+        h5_ffn: str
+            Full filename to ODIM HDF5 file
+
+    Returns:
+    ========
+        cal_dict: dict
+            Calibration values keyed by parameter name. Missing attributes
+            retain their default value of np.nan.
+    """
     cal_dict = {'z_calibration':np.nan, 'zdr_calibration':np.nan, 'az_error':np.nan, 'el_error':np.nan}
     with h5py.File(h5_ffn, 'r') as hfile:
         global_how = hfile['how'].attrs
         try:
             cal_dict['z_calibration'] = global_how['monitoring_calibration']
-        except:
+        except KeyError:
             pass
         try:
             cal_dict['zdr_calibration'] = 0
-        except:
+        except KeyError:
             pass
         try:
-            cal_dict['monitoring_az_error'] = global_how['monitoring_az_error']
-        except:
+            cal_dict['az_error'] = global_how['monitoring_az_error']
+        except KeyError:
             pass
         try:
-            cal_dict['monitoring_el_error'] = global_how['monitoring_el_error']
-        except:
-            pass        
+            cal_dict['el_error'] = global_how['monitoring_el_error']
+        except KeyError:
+            pass
     return cal_dict
 
 
@@ -47,17 +76,14 @@ def check_file_exists(ffn):
         raise FileNotFoundError(f'{ffn}: no such file.')
 
 def mkdir(mydir):
-    if os.path.exists(mydir):
-        return None
-    try:
-        os.makedirs(mydir)
-    except FileExistsError:
-        return None
+    os.makedirs(mydir, exist_ok=True)
     return None
 
 def remove_path(path):
-    cmd = 'rm -rf ' + path
-    os.system(cmd)
+    if not path:
+        raise ValueError("path must not be empty")
+    if os.path.exists(path):
+        shutil.rmtree(path)
 
 def unpack_zip(zip_ffn):
     """
@@ -66,50 +92,68 @@ def unpack_zip(zip_ffn):
     Parameters:
     ===========
         zip_ffn: str
-            Full filename to zip file 
-            
+            Full filename to zip file
+
     Returns:
     ========
-        temp_dir: string
+        temp_dir: str
             Path to temp directory
-    """    
-    #build temp dir
+    """
     temp_dir = tempfile.mkdtemp()
-    #unpack tar
-    zip_fd = zipfile.ZipFile(zip_ffn)
-    zip_fd.extractall(path=temp_dir)
-    zip_fd.close()
+    with zipfile.ZipFile(zip_ffn) as zip_fd:
+        for member in zip_fd.namelist():
+            member_path = os.path.realpath(os.path.join(temp_dir, member))
+            if not member_path.startswith(os.path.realpath(temp_dir)):
+                raise RuntimeError(f"zip slip detected: {member}")
+        zip_fd.extractall(path=temp_dir)
     return temp_dir
 
-def pack_zip(zip_fn, zip_path,  ffn_list):
+def pack_zip(zip_fn, zip_path, ffn_list):
     """
     Packs zip file from file list
 
     Parameters:
     ===========
         zip_fn: str
-            filename of output tar file 
-        tar_path: str
-            path of output tar file 
+            filename of output zip file
+        zip_path: str
+            path of output zip file
         ffn_list: list
-            list of ffn to add to tar
-    """   
-    #create path
-    if not os.path.exists(zip_path):
-        mkdir(zip_path)
-    #zip filename
-    zip_ffn    = '/'.join([zip_path,zip_fn])
-    #remove if it exists
+            list of ffn to add to zip
+    """
+    if not ffn_list:
+        raise ValueError("ffn_list is empty")
+    zip_ffn = os.path.join(zip_path, zip_fn)
+    os.makedirs(zip_path, exist_ok=True)
     if os.path.isfile(zip_ffn):
-        os.system('rm -f ' + zip_ffn)
-    #build zip path
-    zip_cmd = 'zip -jq6'
-    files_to_zip = ' '.join(ffn_list)
-    cmd = ' '.join([zip_cmd, zip_ffn, files_to_zip])
-    os.system(cmd)
-    return None
+        os.remove(zip_ffn)
+    result = subprocess.run(
+        ['zip', '-jq6', zip_ffn] + ffn_list,
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"zip failed: {result.stderr}")
 
 def get_dt_list(vol_ffn_list, delimiter='_', date_fmt='%Y%m%d_%H%M%S', date_str_len=15):
+    """
+    Extracts datetime objects from a list of radar volume filenames.
+
+    Parameters:
+    ===========
+        vol_ffn_list: list
+            List of full filenames to radar volume files
+        delimiter: str
+            Delimiter used in filename to separate fields
+        date_fmt: str
+            strptime format string for the date portion of the filename
+        date_str_len: int
+            Length of the date string within the filename
+
+    Returns:
+    ========
+        dt_list: list
+            List of datetime objects corresponding to each filename
+    """
     dt_list = []
     for vol_ffn in vol_ffn_list:
         dt_list.append(ort.basic.get_date_from_filename(vol_ffn, delimiter=delimiter, date_fmt=date_fmt, date_str_len=date_str_len))
@@ -117,33 +161,44 @@ def get_dt_list(vol_ffn_list, delimiter='_', date_fmt='%Y%m%d_%H%M%S', date_str_
 
 def findin_sitelist(config_dict, radar_id, radar_dt, fallback_to_earliest=True):    
        
+    """
+    Finds the index of the best matching site entry for a given radar ID and datetime.
+
+    Parameters:
+    ===========
+        config_dict: dict
+            Site list dictionary as returned by read_csv
+        radar_id: int or str
+            Radar identifier to search for
+        radar_dt: datetime
+            Datetime of the radar volume
+        fallback_to_earliest: bool
+            If True, fall back to the earliest matching entry when no entry
+            satisfies the date condition, issuing a warning
+
+    Returns:
+    ========
+        dict_idx: int or None
+            Index into config_dict of the best matching entry, or None if no
+            match was found
+    """
     dict_idx = None
-    
+
     id_list  = config_dict['id']
     dts_list = config_dict['postchange_start']
-    #replace empty values with 1900
     for i, dts in enumerate(dts_list):
         if dts == '-':
             dts_list[i] = '01/01/1900'
-    #convert date string to number
-    dt_list  = [datetime.strptime(date, '%d/%m/%Y') for date in dts_list] #note '/' replaced with '_' by csv_read
-    #check for id matches
+    dt_list  = [datetime.strptime(date, '%d/%m/%Y') for date in dts_list]
     match_idx = [i for i, j in enumerate(id_list) if j == radar_id]
-    #abort if no matches
     if len(match_idx) == 0:
         return None
-    #check for multiple matches
-    if len(match_idx) == 1 and radar_dt >= dt_list[match_idx[0]]:
+    for idx in match_idx:
+        if radar_dt >= dt_list[idx]:
+            dict_idx = idx
+    if dict_idx is None and fallback_to_earliest:
         dict_idx = match_idx[0]
-    else:
-        #check list of matches, updates if start_date remains less than odim_date
-        for idx in match_idx:
-            if radar_dt >= dt_list[idx]:
-                dict_idx = idx
-        #fall back if dict_idx is still none
-        if dict_idx is None and fallback_to_earliest:
-            dict_idx = match_idx[0]
-            warnings.warn(f'no site entry found for radar {radar_id} at {radar_dt}, defaulting to {dt_list[dict_idx]}')
+        warnings.warn(f'no site entry found for radar {radar_id} at {radar_dt}, defaulting to {dt_list[dict_idx]}')
             
 
                 
