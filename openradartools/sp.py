@@ -30,18 +30,30 @@ def _filter_hardcoding(my_array, nuke_filter, bad=-9999):
     to_return = np.ma.masked_where(filt_array == bad, filt_array)
     return to_return    
 
-def apply_gpmmatch_calibration(radar, cal_dict, in_dbz_name, out_dbz_name):
+def apply_gpmmatch_calibration(radar, radar_dt, zcal_dict, in_dbz_name, out_dbz_name):
+    # find nearest calibration value for radar_dt
+    error_msg = ''
+    dbzh_offset = np.float32(0)
+    if zcal_dict is None:
+        error_msg = 'no cal file found'
+    else:
+        if radar_dt.date() > zcal_dict['date'][0]:
+            date_diff = np.abs(zcal_dict['date'] - radar_dt.date())
+            nearest_idx = np.argmin(date_diff)
+            dbzh_offset = np.float32(zcal_dict['cal_mean'][nearest_idx])
+        else:
+            dbzh_offset = np.float32(zcal_dict['cal_mean'][0])
 
     #apply calibration
-    refl_cal_data     = radar.fields[in_dbz_name]['data'].copy() - cal_dict['dbzh_offset'] #msgr is GR-SR
+    refl_cal_data = radar.fields[in_dbz_name]['data'].copy() - dbzh_offset
     radar.add_field_like(in_dbz_name, out_dbz_name, refl_cal_data)
-    radar.fields[out_dbz_name]['calibration_offset'] = cal_dict['dbzh_offset'] 
+    radar.fields[out_dbz_name]['calibration_offset'] = dbzh_offset
     radar.fields[out_dbz_name]['calibration_units'] = 'dBZ'
     radar.fields[out_dbz_name]['calibration_description'] = 'Technique implemented using satellite matching described in Louf et al. (2019) doi:10.1175/JTECH-D-18-0007.1'
-    if len(cal_dict['error_msg']) == 0:
+    if len(error_msg) == 0:
         radar.fields[out_dbz_name]['calibration_comment'] = 'GR_cal = GR - cal_offset'
     else:
-        radar.fields[out_dbz_name]['calibration_comment'] = cal_dict['error_msg']
+        radar.fields[out_dbz_name]['calibration_comment'] = error_msg
     return radar
 
 def clean_sp_leroi(radar, dbz_fname, fields_to_mask, dbz_min = 0, area_min = 50):
