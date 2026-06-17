@@ -275,6 +275,11 @@ def read_odim(odim_ffn, siteinfo_ffn=None, fill_value=-9999, file_object_bytes=N
             for dataset in dataset_list:
                 if hfile[dataset]["where"].attrs["elangle"] == 90:
                     bb_dataset_list.append(dataset)
+        # if every sweep is a birdbath scan there are no PPI sweeps left to read;
+        # fail clearly here rather than letting pyart raise an opaque IndexError
+        # (datasets[0]) on the now-empty dataset list.
+        if dataset_list and len(bb_dataset_list) == len(dataset_list):
+            raise ValueError(f"{odim_ffn} contains only birdbath (90 deg) scans, no PPI sweeps to process")
 
     #read radar object
     radar_unsorted = pyart.aux_io.read_odim_h5(odim_ffn, file_field_names=True, exclude_datasets=bb_dataset_list)
