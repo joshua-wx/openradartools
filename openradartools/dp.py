@@ -166,9 +166,9 @@ def do_gatefilter(radar, gf=None, refl_name='DBZ', phidp_name="PHIDP", rhohv_nam
         gf = pyart.correct.despeckle_field(radar, refl_name, gatefilter=gf)
 
     # Remove obviously wrong data.
-    gf.exclude_outside(zdr_name, -6.0, 7.0)
+    gf.exclude_outside(zdr_name, -6.0, 10.0)
     gf.exclude_outside(refl_name, -20.0, 80.0)
-    gf.exclude_below(rhohv_name, 0.7)
+    gf.exclude_below(rhohv_name, 0.5)
 
     return gf
 
